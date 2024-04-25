@@ -1,0 +1,11 @@
+/vendor
+/.idea
+/dist
+/ui/dist/*
+/autopus
+/autopusdb
+TODO.md
+/test/fixtures/apps
+/cmd/playground
+.DS_Store
+fly.toml
