@@ -8,7 +8,6 @@ var _ Interface = (*Impl)(nil)
 
 type Interface interface {
 	AuthInterface
-	GetPersistence() persistence.Interface
 }
 
 type Impl struct {
@@ -19,8 +18,4 @@ func New(db persistence.Interface) *Impl {
 	return &Impl{
 		db: db,
 	}
-}
-
-func (i *Impl) GetPersistence() persistence.Interface {
-	return i.db
 }
