@@ -8,6 +8,7 @@ import (
 	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/pkg/log"
+	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/store"
 	"github.com/autopus/bootstrap/store/persistence/sql/sqlite"
 )
@@ -29,6 +30,11 @@ type OnAfterStoreBootstrapEvent struct {
 	Store store.Interface
 }
 
+type OnBeforeServeEvent struct {
+	App    *App
+	Server *server.Server
+}
+
 type App struct {
 	Cfg      config.Interface
 	Store    store.Interface
@@ -38,6 +44,7 @@ type App struct {
 	onAfterBootstrap       *hooks.Hook[*OnAfterBootstrapEvent]
 	onBeforeStoreBootstrap *hooks.Hook[*OnBeforeStoreBootstrapEvent]
 	onAfterStoreBootstrap  *hooks.Hook[*OnAfterStoreBootstrapEvent]
+	onBeforeServe          *hooks.Hook[*OnBeforeServeEvent]
 }
 
 func New(cfg config.Interface) *App {
@@ -48,6 +55,7 @@ func New(cfg config.Interface) *App {
 		onAfterBootstrap:       &hooks.Hook[*OnAfterBootstrapEvent]{},
 		onBeforeStoreBootstrap: &hooks.Hook[*OnBeforeStoreBootstrapEvent]{},
 		onAfterStoreBootstrap:  &hooks.Hook[*OnAfterStoreBootstrapEvent]{},
+		onBeforeServe:          &hooks.Hook[*OnBeforeServeEvent]{},
 	}
 }
 
@@ -77,6 +85,10 @@ func (a *App) OnAfterBootstrap() *hooks.Hook[*OnAfterBootstrapEvent] {
 	return a.onAfterBootstrap
 }
 
+func (a *App) OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent] {
+	return a.onBeforeServe
+}
+
 func (a *App) BootstrapStore(ctx context.Context) error {
 	if err := a.onBeforeStoreBootstrap.Trigger(ctx, &OnBeforeStoreBootstrapEvent{
 		App: a,
@@ -97,7 +109,7 @@ func (a *App) BootstrapStore(ctx context.Context) error {
 }
 
 func (a *App) bootstrap(ctx context.Context) error {
-	if err := a.onBeforeBootstrap.Trigger(ctx, &OnBeforeBootstrapEvent{}); err != nil {
+	if err := a.OnBeforeBootstrap().Trigger(ctx, &OnBeforeBootstrapEvent{}); err != nil {
 		return fmt.Errorf("before bootstrap: %w", err)
 	}
 
@@ -105,7 +117,7 @@ func (a *App) bootstrap(ctx context.Context) error {
 		return fmt.Errorf("store bootstrap: %w", err)
 	}
 
-	if err := a.onAfterBootstrap.Trigger(ctx, &OnAfterBootstrapEvent{}); err != nil {
+	if err := a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{}); err != nil {
 		return fmt.Errorf("after bootstrap: %w", err)
 	}
 

@@ -9,7 +9,6 @@ import (
 	"github.com/autopus/bootstrap/app"
 	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/pkg/auth/signer"
-	"github.com/autopus/bootstrap/pkg/baseurl"
 	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/log"
 	"github.com/autopus/bootstrap/server"
@@ -18,14 +17,18 @@ import (
 )
 
 type API struct {
-	*app.App
+	*privateApp
 
 	authSrv *auth.Service
 }
 
+type privateApp struct {
+	*app.App
+}
+
 func New(cfg config.Interface) *API {
 	api := &API{
-		App: app.New(cfg),
+		privateApp: &privateApp{app.New(cfg)},
 	}
 
 	return api
@@ -35,6 +38,27 @@ func (a *API) Start(_ context.Context) error {
 	if err := a.App.Start(); err != nil {
 		return fmt.Errorf("failed to start app: %w", err)
 	}
+
+	srv := server.New(a.Cfg)
+	a.authRouterSetup(srv)
+
+	if err := a.OnBeforeServe().Trigger(
+		context.Background(),
+		&app.OnBeforeServeEvent{App: a.App, Server: srv},
+	); err != nil {
+		return fmt.Errorf("failed to trigger on before serve event: %w", err)
+	}
+
+	if err := srv.Serve(); err != nil {
+		log.Default().Error("failed to start server", log.ErrorAttr(err))
+		panic(err)
+	}
+
+	return nil
+}
+
+func (a *API) authRouterSetup(srv *server.Server) {
+	rootRouter := srv.Router()
 
 	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
 	// setup authentication service
@@ -50,43 +74,19 @@ func (a *API) Start(_ context.Context) error {
 		panic(err)
 	}
 
-	srv := server.New(a.Cfg)
-	routerSetup(
-		a.Cfg,
-		srv.Router(),
-		authSrv,
-	)
-
-	if err := srv.Serve(); err != nil {
-		log.Default().Error("failed to start server", log.ErrorAttr(err))
-		panic(err)
-	}
-
-	return nil
-}
-
-func routerSetup(
-	cfg config.Interface,
-	rootRouter chi.Router,
-	authSrv *auth.Service,
-) {
 	authMiddleware := authSrv.NewMiddleware()
-	baseURLMw := baseurl.NewMiddleware(cfg)
-	rootRouter.Use(baseURLMw)
 
-	rootRouter.Route("/"+cfg.GetBasePath(), func(apiRouter chi.Router) {
-		apiRouter.Route("/auth", func(r chi.Router) {
-			// public routes
-			r.Post("/signup", authSrv.SignupHandler)
-			r.Post("/login", authSrv.LoginHandler)
-			r.Post("/token", authSrv.AuthTokenHandler)
-			r.Get("/token/authorization", authSrv.TokenAuthorizationHandler)
-			r.Get("/{provider}", authSrv.Oauth2AuthenticateHandler)
-			r.Get("/{provider}/callback", authSrv.Oauth2LoginSignupCallbackHandler)
+	rootRouter.Route("/auth", func(r chi.Router) {
+		// public routes
+		r.Post("/signup", authSrv.SignupHandler)
+		r.Post("/login", authSrv.LoginHandler)
+		r.Post("/token", authSrv.AuthTokenHandler)
+		r.Get("/token/authorization", authSrv.TokenAuthorizationHandler)
+		r.Get("/{provider}", authSrv.Oauth2AuthenticateHandler)
+		r.Get("/{provider}/callback", authSrv.Oauth2LoginSignupCallbackHandler)
 
-			// private routes
-			r.With(authMiddleware).Get("/me", authSrv.MeHandler)
-		})
+		// private routes
+		r.With(authMiddleware).Get("/me", authSrv.MeHandler)
 	})
 
 	if err := ui.Handler(rootRouter); err != nil {
