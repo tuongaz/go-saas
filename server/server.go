@@ -12,12 +12,12 @@ import (
 )
 
 type Server struct {
-	config  *config.Config
+	config  config.Interface
 	r       *chi.Mux
 	baseURL string
 }
 
-func New(cfg *config.Config) *Server {
+func New(cfg config.Interface) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -41,8 +41,8 @@ func (s *Server) Router() *chi.Mux {
 }
 
 func (s *Server) Serve() error {
-	fmt.Printf("Server started at %s\n", ":"+s.config.ServerPort)
-	if err := http.ListenAndServe(":"+s.config.ServerPort, s.r); err != nil {
+	fmt.Printf("Server started at %s\n", ":"+s.config.GetServerPort())
+	if err := http.ListenAndServe(":"+s.config.GetServerPort(), s.r); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}
 

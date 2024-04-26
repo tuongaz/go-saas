@@ -38,7 +38,7 @@ func WithJWTLifeTimeMinutes(minutes int) func(*Options) {
 }
 
 func New(
-	cfg *config.Config,
+	cfg config.Interface,
 	store store.AuthInterface,
 	encryptor encrypt.Interface,
 	signer signer.Interface,
@@ -53,7 +53,7 @@ func New(
 
 	s := &Service{
 		cfg:                  cfg,
-		issuer:               cfg.JWTIssuer,
+		issuer:               cfg.GetJWTIssuer(),
 		store:                store,
 		signer:               signer,
 		encryptor:            encryptor,
@@ -66,7 +66,7 @@ func New(
 }
 
 type Service struct {
-	cfg                  *config.Config
+	cfg                  config.Interface
 	store                store.AuthInterface
 	issuer               string
 	signer               signer.Interface

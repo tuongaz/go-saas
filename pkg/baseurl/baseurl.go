@@ -15,15 +15,15 @@ const (
 )
 
 // NewMiddleware creates a new middleware that sets the base URL in the request context.
-func NewMiddleware(cfg *config.Config) func(next http.Handler) http.Handler {
+func NewMiddleware(cfg config.Interface) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, baseURLKey, getURL(r))
 
 			basePath := getURL(r)
-			if cfg.BasePath != "" {
-				basePath = getURL(r) + "/" + cfg.BasePath
+			if cfg.GetBasePath() != "" {
+				basePath = getURL(r) + "/" + cfg.GetBasePath()
 			}
 			ctx = context.WithValue(ctx, baseAPIURLKey, basePath)
 			r = r.WithContext(ctx)

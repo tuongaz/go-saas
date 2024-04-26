@@ -12,29 +12,45 @@ const (
 	EnvironmentProduction = "production"
 )
 
-type Config struct {
-	Environment string `mapstructure:"AUTOPUS_ENVIRONMENT"`
-	ServerPort  string `mapstructure:"AUTOPUS_SERVER_PORT" validate:"required,port"`
-	AppsDir     string `mapstructure:"AUTOPUS_APPS_DIR"`
+type Interface interface {
+	GetEnvironment() string
+	GetServerPort() string
+	GetEncryptionKey() string
+	GetBasePath() string
+	GetJWTSigningSecret() string
+	GetJWTTokenLifetimeMinutes() int
+	GetJWTIssuer() string
+	GetSQLiteDatasource() string
+	GetMySQLDataSource() string
+	GetPostgresDataSource() string
 
+	GetAuthGoogleClientID() string
+	GetAuthGoogleClientSecret() string
+	IsProduction() bool
+}
+
+type Config struct {
+	Environment   string `mapstructure:"AUTOPUS_ENVIRONMENT"`
+	ServerPort    string `mapstructure:"AUTOPUS_SERVER_PORT" validate:"required,port"`
+	EncryptionKey string `mapstructure:"AUTOPUS_ENCRYPTION_KEY"`
+	BasePath      string
+
+	// Authentication
 	JWTSigningSecret        string `mapstructure:"AUTOPUS_JWT_SIGNING_SECRET"`
 	JWTTokenLifetimeMinutes int    `mapstructure:"AUTOPUS_JWT_TOKEN_LIFETIME_MINUTES"`
 	JWTIssuer               string `mapstructure:"AUTOPUS_JWT_ISSUER"`
+
+	// Datasource, credentials
+	SqliteDatasource   string `mapstructure:"AUTOPUS_SQLITE_DATASOURCE"`
+	MySqlDataSource    string `mapstructure:"AUTOPUS_MYSQL_DATASOURCE"`
+	PostgresDataSource string `mapstructure:"AUTOPUS_POSTGRES_DATASOURCE"`
 
 	//Auth providers
 	AuthGoogleClientID     string `mapstructure:"AUTOPUS_AUTH_GOOGLE_CLIENT_ID"`
 	AuthGoogleClientSecret string `mapstructure:"AUTOPUS_AUTH_GOOGLE_CLIENT_SECRET"`
 
-	// Datasource, credentials
-	SQLiteDatasource   string `mapstructure:"AUTOPUS_SQLITE_DATASOURCE"`
-	OpenAPIKey         string `mapstructure:"AUTOPUS_OPENAI_API_KEY"`
-	MySQLDataSource    string `mapstructure:"AUTOPUS_MYSQL_DATASOURCE"`
-	PostgresDataSource string `mapstructure:"AUTOPUS_POSTGRES_DATASOURCE"`
-
-	// Security
-	EncryptionKey string `mapstructure:"AUTOPUS_ENCRYPTION_KEY"`
-
-	BasePath string
+	AppsDir    string `mapstructure:"AUTOPUS_APPS_DIR"`
+	OpenAPIKey string `mapstructure:"AUTOPUS_OPENAI_API_KEY"`
 }
 
 func New() (*Config, error) {
@@ -76,6 +92,54 @@ func New() (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func (c *Config) GetEnvironment() string {
+	return c.Environment
+}
+
+func (c *Config) GetServerPort() string {
+	return c.ServerPort
+}
+
+func (c *Config) GetEncryptionKey() string {
+	return c.EncryptionKey
+}
+
+func (c *Config) GetBasePath() string {
+	return c.BasePath
+}
+
+func (c *Config) GetJWTSigningSecret() string {
+	return c.JWTSigningSecret
+}
+
+func (c *Config) GetJWTTokenLifetimeMinutes() int {
+	return c.JWTTokenLifetimeMinutes
+}
+
+func (c *Config) GetJWTIssuer() string {
+	return c.JWTIssuer
+}
+
+func (c *Config) GetSQLiteDatasource() string {
+	return c.SqliteDatasource
+}
+
+func (c *Config) GetMySQLDataSource() string {
+	return c.MySqlDataSource
+}
+
+func (c *Config) GetPostgresDataSource() string {
+	return c.PostgresDataSource
+}
+
+func (c *Config) GetAuthGoogleClientID() string {
+	return c.AuthGoogleClientID
+}
+
+func (c *Config) GetAuthGoogleClientSecret() string {
+	return c.AuthGoogleClientSecret
 }
 
 func (c *Config) IsProduction() bool {

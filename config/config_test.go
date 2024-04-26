@@ -14,7 +14,7 @@ func TestNewConfigDefaults(t *testing.T) {
 
 	cfg, err := New()
 	assert.NoError(t, err)
-	assert.Equal(t, "8080", cfg.ServerPort)
+	assert.Equal(t, "8080", cfg.GetServerPort)
 }
 
 func TestNewConfigFromEnv(t *testing.T) {
@@ -25,7 +25,7 @@ func TestNewConfigFromEnv(t *testing.T) {
 
 	cfg, err := New()
 	assert.NoError(t, err)
-	assert.Equal(t, "3000", cfg.ServerPort)
+	assert.Equal(t, "3000", cfg.GetServerPort)
 
 	// Clear environment variables after test
 	os.Clearenv()
@@ -41,7 +41,7 @@ func TestConfigValidation(t *testing.T) {
 	assert.NoError(t, validate.Struct(cfg))
 
 	// Invalid Port
-	cfg.ServerPort = "70000" // Port number out of range
+	cfg.GetServerPort = "70000" // Port number out of range
 	assert.Error(t, validate.Struct(cfg))
 }
 

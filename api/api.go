@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	app2 "github.com/autopus/bootstrap/app"
+	"github.com/autopus/bootstrap/app"
 	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/pkg/auth/signer"
 	"github.com/autopus/bootstrap/pkg/baseurl"
@@ -18,32 +18,32 @@ import (
 )
 
 type API struct {
-	*app2.App
+	*app.App
 
 	authSrv *auth.Service
 }
 
-func New(cfg *config.Config) *API {
+func New(cfg config.Interface) *API {
 	api := &API{
-		App: app2.New(cfg),
+		App: app.New(cfg),
 	}
 
 	return api
 }
 
-func (a *API) Start(ctx context.Context) error {
+func (a *API) Start(_ context.Context) error {
 	if err := a.App.Start(); err != nil {
 		return fmt.Errorf("failed to start app: %w", err)
 	}
 
-	encryptor := encrypt.New(a.Cfg.EncryptionKey)
+	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
 	// setup authentication service
 	authSrv, err := auth.New(
 		a.Cfg,
 		a.Store,
 		encryptor,
-		signer.NewHS256Signer([]byte(a.Cfg.JWTSigningSecret)),
-		auth.WithJWTLifeTimeMinutes(a.Cfg.JWTTokenLifetimeMinutes),
+		signer.NewHS256Signer([]byte(a.Cfg.GetJWTSigningSecret())),
+		auth.WithJWTLifeTimeMinutes(a.Cfg.GetJWTTokenLifetimeMinutes()),
 	)
 	if err != nil {
 		log.Default().Error("failed to init auth service", log.ErrorAttr(err))
@@ -66,7 +66,7 @@ func (a *API) Start(ctx context.Context) error {
 }
 
 func routerSetup(
-	cfg *config.Config,
+	cfg config.Interface,
 	rootRouter chi.Router,
 	authSrv *auth.Service,
 ) {
@@ -74,7 +74,7 @@ func routerSetup(
 	baseURLMw := baseurl.NewMiddleware(cfg)
 	rootRouter.Use(baseURLMw)
 
-	rootRouter.Route("/"+cfg.BasePath, func(apiRouter chi.Router) {
+	rootRouter.Route("/"+cfg.GetBasePath(), func(apiRouter chi.Router) {
 		apiRouter.Route("/auth", func(r chi.Router) {
 			// public routes
 			r.Post("/signup", authSrv.SignupHandler)

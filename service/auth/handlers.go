@@ -70,8 +70,8 @@ type TokenRequestInput struct {
 
 func (s *Service) getGoogleAuthConfig(ctx context.Context) oauth2.Config {
 	return oauth2.Config{
-		ClientID:     s.cfg.AuthGoogleClientID,
-		ClientSecret: s.cfg.AuthGoogleClientSecret,
+		ClientID:     s.cfg.GetAuthGoogleClientID(),
+		ClientSecret: s.cfg.GetAuthGoogleClientSecret(),
 		RedirectURL:  fmt.Sprintf("%s/auth/google/callback", baseurl.GetBaseAPI(ctx)),
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile"},
 	}

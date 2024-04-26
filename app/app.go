@@ -30,7 +30,7 @@ type OnAfterStoreBootstrapEvent struct {
 }
 
 type App struct {
-	Cfg      *config.Config
+	Cfg      config.Interface
 	Store    store.Interface
 	dbCloser func()
 
@@ -40,7 +40,7 @@ type App struct {
 	onAfterStoreBootstrap  *hooks.Hook[*OnAfterStoreBootstrapEvent]
 }
 
-func New(cfg *config.Config) *App {
+func New(cfg config.Interface) *App {
 	return &App{
 		Cfg: cfg,
 
@@ -112,9 +112,9 @@ func (a *App) bootstrap(ctx context.Context) error {
 	return nil
 }
 
-func mustNewStore(cfg *config.Config) (store.Interface, func()) {
+func mustNewStore(cfg config.Interface) (store.Interface, func()) {
 	log.Default().Info("using sqlite db")
-	db, closer, err := sqlite.New(cfg.SQLiteDatasource)
+	db, closer, err := sqlite.New(cfg.GetSQLiteDatasource())
 	if err != nil {
 		log.Default().Error("failed to init sqlite db", log.ErrorAttr(err))
 		panic(err)
