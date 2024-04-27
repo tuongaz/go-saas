@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
+
+	"github.com/autopus/bootstrap"
 )
 
 const (
@@ -20,9 +22,13 @@ type Interface interface {
 	GetJWTSigningSecret() string
 	GetJWTTokenLifetimeMinutes() int
 	GetJWTIssuer() string
+
 	GetSQLiteDatasource() string
+	GetSQLiteSchema() string
 	GetMySQLDataSource() string
+	GetMySQLSchema() string
 	GetPostgresDataSource() string
+	GetPostgresSchema() string
 
 	GetAuthGoogleClientID() string
 	GetAuthGoogleClientSecret() string
@@ -51,6 +57,10 @@ type Config struct {
 
 	AppsDir    string `mapstructure:"AUTOPUS_APPS_DIR"`
 	OpenAPIKey string `mapstructure:"AUTOPUS_OPENAI_API_KEY"`
+
+	sqliteSchema   string
+	mysqlSchema    string
+	postgresSchema string
 }
 
 func New() (*Config, error) {
@@ -126,12 +136,48 @@ func (c *Config) GetSQLiteDatasource() string {
 	return c.SqliteDatasource
 }
 
+func (c *Config) SetSQLiteSchema(schema string) {
+	c.sqliteSchema = schema
+}
+
+func (c *Config) GetSQLiteSchema() string {
+	if c.sqliteSchema == "" {
+		return app.SqliteSchema
+	}
+
+	return c.sqliteSchema
+}
+
 func (c *Config) GetMySQLDataSource() string {
 	return c.MySqlDataSource
 }
 
+func (c *Config) SetMySQLSchema(schema string) {
+	c.mysqlSchema = schema
+}
+
+func (c *Config) GetMySQLSchema() string {
+	if c.mysqlSchema == "" {
+		return app.MySQLSchema
+	}
+
+	return c.mysqlSchema
+}
+
 func (c *Config) GetPostgresDataSource() string {
 	return c.PostgresDataSource
+}
+
+func (c *Config) SetPostgresSchema(schema string) {
+	c.postgresSchema = schema
+}
+
+func (c *Config) GetPostgresSchema() string {
+	if c.postgresSchema == "" {
+		return app.PostgresSchema
+	}
+
+	return c.postgresSchema
 }
 
 func (c *Config) GetAuthGoogleClientID() string {

@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	aapp "github.com/autopus/bootstrap"
 	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/pkg/hooks"
-	"github.com/autopus/bootstrap/pkg/log"
 	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/store"
-	"github.com/autopus/bootstrap/store/persistence/sql/sqlite"
 )
 
 type OnBeforeBootstrapEvent struct {
@@ -96,7 +93,7 @@ func (a *App) BootstrapStore(ctx context.Context) error {
 		return fmt.Errorf("before store start: %w", err)
 	}
 
-	a.Store, a.dbCloser = mustNewStore(a.Cfg)
+	a.Store, a.dbCloser = store.MustNew(a.Cfg)
 
 	if err := a.onAfterStoreBootstrap.Trigger(ctx, &OnAfterStoreBootstrapEvent{
 		App:   a,
@@ -122,40 +119,4 @@ func (a *App) bootstrap(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func mustNewStore(cfg config.Interface) (store.Interface, func()) {
-	log.Default().Info("using sqlite db")
-	db, closer, err := sqlite.New(cfg.GetSQLiteDatasource())
-	if err != nil {
-		log.Default().Error("failed to init sqlite db", log.ErrorAttr(err))
-		panic(err)
-	}
-
-	if !db.DBExists() {
-		_, err = db.Conn().Exec(aapp.SqliteSchema)
-		if err != nil {
-			log.Default().Error("failed to init sqlite db schema", log.ErrorAttr(err))
-			panic(err)
-		}
-	}
-
-	//if cfg.PostgresDataSource != "" {
-	//	log.Default().Info("using postgres db")
-	//	db, closer, err := postgres.New(cfg.PostgresDataSource)
-	//	if err != nil {
-	//		log.Default().Error("failed to init postgres db", log.ErrorAttr(err))
-	//		panic(err)
-	//	}
-	//	return db, closer
-	//}
-
-	//log.Default().Info("using sqlite db")
-	//db, closer, err := sqlite.New(cfg.SQLiteDatasource)
-	//if err != nil {
-	//	log.Default().Error("failed to init sqlite db", log.ErrorAttr(err))
-	//	panic(err)
-	//}
-
-	return store.New(db), closer
 }

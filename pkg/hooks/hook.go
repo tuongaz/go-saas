@@ -47,7 +47,7 @@ func (h *Hook[T]) AddRsync(handler Handler[T]) string {
 
 func (h *Hook[T]) Trigger(ctx context.Context, event T) error {
 	h.mu.RLock()
-	handlers := make([]*handlerPair[T], len(h.handlers))
+	handlers := make([]*handlerPair[T], 0, len(h.handlers))
 	handlers = append(handlers, h.handlers...)
 	h.mu.RUnlock()
 

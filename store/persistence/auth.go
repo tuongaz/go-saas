@@ -66,14 +66,6 @@ type AuthProviderRow struct {
 	UpdatedAt      time.Time `db:"updated_at"`
 }
 
-func GetPageSize(size int) int {
-	if size == 0 {
-		return 10
-	}
-
-	return size
-}
-
 type AccountRow struct {
 	ID                 string    `db:"id"`
 	Name               string    `db:"name"`

@@ -11,4 +11,4 @@ var SqliteSchema string
 var PostgresSchema string
 
 //go:embed store/persistence/schemas/mysql.sql
-var MysqlSchema string
+var MySQLSchema string
