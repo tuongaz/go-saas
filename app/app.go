@@ -8,6 +8,7 @@ import (
 	"github.com/autopus/bootstrap/pkg/auth/signer"
 	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/hooks"
+	"github.com/autopus/bootstrap/pkg/log"
 	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/service/auth"
 	"github.com/autopus/bootstrap/store"
@@ -35,6 +36,10 @@ type OnBeforeServeEvent struct {
 	Server *server.Server
 }
 
+type OnTerminateEvent struct {
+	App *App
+}
+
 type App struct {
 	Cfg      config.Interface
 	Store    store.Interface
@@ -45,6 +50,7 @@ type App struct {
 	onBeforeStoreBootstrap *hooks.Hook[*OnBeforeStoreBootstrapEvent]
 	onAfterStoreBootstrap  *hooks.Hook[*OnAfterStoreBootstrapEvent]
 	onBeforeServe          *hooks.Hook[*OnBeforeServeEvent]
+	onTerminate            *hooks.Hook[*OnTerminateEvent]
 
 	authSrv *auth.Service
 }
@@ -58,6 +64,7 @@ func New(cfg config.Interface) *App {
 		onBeforeStoreBootstrap: &hooks.Hook[*OnBeforeStoreBootstrapEvent]{},
 		onAfterStoreBootstrap:  &hooks.Hook[*OnAfterStoreBootstrapEvent]{},
 		onBeforeServe:          &hooks.Hook[*OnBeforeServeEvent]{},
+		onTerminate:            &hooks.Hook[*OnTerminateEvent]{},
 	}
 }
 
@@ -72,6 +79,7 @@ func (a *App) Start() error {
 }
 
 func (a *App) Shutdown() error {
+	log.Default().Warn("shutting down app")
 	if a.dbCloser != nil {
 		a.dbCloser()
 	}
@@ -89,6 +97,10 @@ func (a *App) OnAfterBootstrap() *hooks.Hook[*OnAfterBootstrapEvent] {
 
 func (a *App) OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent] {
 	return a.onBeforeServe
+}
+
+func (a *App) OnTerminate() *hooks.Hook[*OnTerminateEvent] {
+	return a.onTerminate
 }
 
 func (a *App) BootstrapStore(ctx context.Context) error {

@@ -3,6 +3,9 @@ package api
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-chi/chi/v5"
 
@@ -31,7 +34,7 @@ func New(cfg config.Interface) *API {
 	return api
 }
 
-func (a *API) Start(_ context.Context) error {
+func (a *API) Start(ctx context.Context) error {
 	if err := a.App.Start(); err != nil {
 		return fmt.Errorf("failed to start app: %w", err)
 	}
@@ -40,18 +43,38 @@ func (a *API) Start(_ context.Context) error {
 	a.authRouterSetup(srv)
 
 	if err := a.OnBeforeServe().Trigger(
-		context.Background(),
+		ctx,
 		&app.OnBeforeServeEvent{App: a.App, Server: srv},
 	); err != nil {
 		return fmt.Errorf("failed to trigger on before serve event: %w", err)
 	}
 
-	if err := srv.Serve(); err != nil {
-		log.Default().Error("failed to start server", log.ErrorAttr(err))
-		panic(err)
-	}
+	done := make(chan bool, 1)
+	go func() {
+		sigch := make(chan os.Signal, 1)
+		signal.Notify(sigch, os.Interrupt, syscall.SIGTERM)
+		<-sigch
 
-	return nil
+		done <- true
+	}()
+
+	go func() {
+		if err := srv.Serve(); err != nil {
+			log.Default().Error("failed to serve: %v", err)
+		}
+
+		done <- true
+	}()
+
+	<-done
+
+	return a.OnTerminate().Trigger(
+		ctx,
+		&app.OnTerminateEvent{App: a.App},
+		func(ctx context.Context, e *app.OnTerminateEvent) error {
+			return e.App.Shutdown()
+		},
+	)
 }
 
 func (a *API) authRouterSetup(srv *server.Server) {

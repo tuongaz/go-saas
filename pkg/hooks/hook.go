@@ -45,10 +45,13 @@ func (h *Hook[T]) AddRsync(handler Handler[T]) string {
 	return id
 }
 
-func (h *Hook[T]) Trigger(ctx context.Context, event T) error {
+func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handler[T]) error {
 	h.mu.RLock()
 	handlers := make([]*handlerPair[T], 0, len(h.handlers))
 	handlers = append(handlers, h.handlers...)
+	for _, handler := range oneOffHandlers {
+		handlers = append(handlers, &handlerPair[T]{uid.ID(), handler})
+	}
 	h.mu.RUnlock()
 
 	for _, handler := range handlers {
