@@ -13,10 +13,10 @@ import (
 )
 
 //go:embed dist/*
-var webFiles embed.FS
+var WebFiles embed.FS
 
-func Handler(router chi.Router) error {
-	fileSystem, err := fs.Sub(webFiles, "dist")
+func Handler(router chi.Router, files embed.FS, dir string) error {
+	fileSystem, err := fs.Sub(files, dir)
 	if err != nil {
 		return fmt.Errorf("create file system: %w", err)
 	}

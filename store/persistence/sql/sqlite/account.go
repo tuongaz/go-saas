@@ -153,9 +153,11 @@ func (s *SQL) CreateOwnerAccount(
 		return err
 	}
 
-	err = s.createUser(ctx, tx, userRow)
-	if err != nil {
-		return err
+	if userRow != nil {
+		err = s.createUser(ctx, tx, userRow)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()

@@ -5,8 +5,11 @@ import (
 	"fmt"
 
 	"github.com/autopus/bootstrap/config"
+	"github.com/autopus/bootstrap/pkg/auth/signer"
+	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/server"
+	"github.com/autopus/bootstrap/service/auth"
 	"github.com/autopus/bootstrap/store"
 )
 
@@ -42,6 +45,8 @@ type App struct {
 	onBeforeStoreBootstrap *hooks.Hook[*OnBeforeStoreBootstrapEvent]
 	onAfterStoreBootstrap  *hooks.Hook[*OnAfterStoreBootstrapEvent]
 	onBeforeServe          *hooks.Hook[*OnBeforeServeEvent]
+
+	authSrv *auth.Service
 }
 
 func New(cfg config.Interface) *App {
@@ -105,8 +110,14 @@ func (a *App) BootstrapStore(ctx context.Context) error {
 	return nil
 }
 
+func (a *App) GetAuthService() *auth.Service {
+	return a.authSrv
+}
+
 func (a *App) bootstrap(ctx context.Context) error {
-	if err := a.OnBeforeBootstrap().Trigger(ctx, &OnBeforeBootstrapEvent{}); err != nil {
+	if err := a.OnBeforeBootstrap().Trigger(ctx, &OnBeforeBootstrapEvent{
+		App: a,
+	}); err != nil {
 		return fmt.Errorf("before bootstrap: %w", err)
 	}
 
@@ -114,9 +125,35 @@ func (a *App) bootstrap(ctx context.Context) error {
 		return fmt.Errorf("store bootstrap: %w", err)
 	}
 
-	if err := a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{}); err != nil {
+	if err := a.bootstrapAuthService(); err != nil {
+		return fmt.Errorf("auth service bootstrap: %w", err)
+	}
+
+	if err := a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{
+		App: a,
+	}); err != nil {
 		return fmt.Errorf("after bootstrap: %w", err)
 	}
+
+	return nil
+}
+
+func (a *App) bootstrapAuthService() error {
+	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
+	// setup authentication service
+	authSrv, err := auth.New(
+		a.Cfg,
+		a.Store,
+		encryptor,
+		signer.NewHS256Signer([]byte(a.Cfg.GetJWTSigningSecret())),
+		auth.WithJWTLifeTimeMinutes(a.Cfg.GetJWTTokenLifetimeMinutes()),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to init auth service: %w", err)
+	}
+
+	a.authSrv = authSrv
 
 	return nil
 }

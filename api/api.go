@@ -8,12 +8,9 @@ import (
 
 	"github.com/autopus/bootstrap/app"
 	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/pkg/auth/signer"
-	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/log"
 	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/service/auth"
-	"github.com/autopus/bootstrap/ui"
 )
 
 type API struct {
@@ -59,20 +56,7 @@ func (a *API) Start(_ context.Context) error {
 
 func (a *API) authRouterSetup(srv *server.Server) {
 	rootRouter := srv.Router()
-
-	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
-	// setup authentication service
-	authSrv, err := auth.New(
-		a.Cfg,
-		a.Store,
-		encryptor,
-		signer.NewHS256Signer([]byte(a.Cfg.GetJWTSigningSecret())),
-		auth.WithJWTLifeTimeMinutes(a.Cfg.GetJWTTokenLifetimeMinutes()),
-	)
-	if err != nil {
-		log.Default().Error("failed to init auth service", log.ErrorAttr(err))
-		panic(err)
-	}
+	authSrv := a.GetAuthService()
 
 	authMiddleware := authSrv.NewMiddleware()
 
@@ -88,9 +72,4 @@ func (a *API) authRouterSetup(srv *server.Server) {
 		// private routes
 		r.With(authMiddleware).Get("/me", authSrv.MeHandler)
 	})
-
-	if err := ui.Handler(rootRouter); err != nil {
-		log.Default().Error("failed to init frontend", log.ErrorAttr(err))
-		panic(err)
-	}
 }
