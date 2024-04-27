@@ -16,9 +16,12 @@ const (
 
 type Interface interface {
 	GetEnvironment() string
+	IsProduction() bool
+
 	GetServerPort() string
-	GetEncryptionKey() string
 	GetBasePath() string
+
+	GetEncryptionKey() string
 	GetJWTSigningSecret() string
 	GetJWTTokenLifetimeMinutes() int
 	GetJWTIssuer() string
@@ -32,7 +35,13 @@ type Interface interface {
 
 	GetAuthGoogleClientID() string
 	GetAuthGoogleClientSecret() string
-	IsProduction() bool
+
+	GetCORSAllowedOrigins() []string
+	GetCORSAllowedHeaders() []string
+	GetCORSAllowedMethods() []string
+	GetCORSExposedHeaders() []string
+	GetCORSAllowCredentials() bool
+	GetCORSMaxAge() int
 }
 
 type Config struct {
@@ -57,6 +66,14 @@ type Config struct {
 
 	AppsDir    string `mapstructure:"AUTOPUS_APPS_DIR"`
 	OpenAPIKey string `mapstructure:"AUTOPUS_OPENAI_API_KEY"`
+
+	// CORS
+	CORSAllowedOrigins   []string `mapstructure:"AUTOPUS_CORS_ALLOWED_ORIGINS"`
+	CORSAllowedHeaders   []string `mapstructure:"AUTOPUS_CORS_ALLOWED_HEADERS"`
+	CORSAllowedMethods   []string `mapstructure:"AUTOPUS_CORS_ALLOWED_METHODS"`
+	CORSExposedHeaders   []string `mapstructure:"AUTOPUS_CORS_EXPOSED_HEADERS"`
+	CORSAllowCredentials bool     `mapstructure:"AUTOPUS_CORS_ALLOW_CREDENTIALS"`
+	CORSMaxAge           int      `mapstructure:"AUTOPUS_CORS_MAX_AGE"`
 
 	sqliteSchema   string
 	mysqlSchema    string
@@ -87,6 +104,14 @@ func New() (*Config, error) {
 	viper.SetDefault("AUTOPUS_MYSQL_DATASOURCE", "")
 	viper.SetDefault("AUTOPUS_POSTGRES_DATASOURCE", "")
 	viper.SetDefault("AUTOPUS_ENCRYPTION_KEY", "must-be-something-else-in-prod")
+
+	// CORS
+	viper.SetDefault("AUTOPUS_CORS_ALLOWED_ORIGINS", []string{"https://*", "http://*"})
+	viper.SetDefault("AUTOPUS_CORS_ALLOWED_HEADERS", []string{"*"})
+	viper.SetDefault("AUTOPUS_CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	viper.SetDefault("AUTOPUS_CORS_EXPOSED_HEADERS", []string{"Link"})
+	viper.SetDefault("AUTOPUS_CORS_ALLOW_CREDENTIALS", false)
+	viper.SetDefault("AUTOPUS_CORS_MAX_AGE", 300)
 
 	// Unmarshal environment variables into Config struct
 	var cfg Config
@@ -190,6 +215,30 @@ func (c *Config) GetAuthGoogleClientSecret() string {
 
 func (c *Config) IsProduction() bool {
 	return c.Environment == EnvironmentProduction
+}
+
+func (c *Config) GetCORSAllowedOrigins() []string {
+	return c.CORSAllowedOrigins
+}
+
+func (c *Config) GetCORSAllowedHeaders() []string {
+	return c.CORSAllowedHeaders
+}
+
+func (c *Config) GetCORSAllowedMethods() []string {
+	return c.CORSAllowedMethods
+}
+
+func (c *Config) GetCORSExposedHeaders() []string {
+	return c.CORSExposedHeaders
+}
+
+func (c *Config) GetCORSAllowCredentials() bool {
+	return c.CORSAllowCredentials
+}
+
+func (c *Config) GetCORSMaxAge() int {
+	return c.CORSMaxAge
 }
 
 // validatePort is a custom validator for the port

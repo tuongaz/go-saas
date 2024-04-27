@@ -25,12 +25,12 @@ func New(cfg config.Interface) *Server {
 	r.Use(baseurl.NewMiddleware(cfg))
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"}, // TODO: Fix this
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"*"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		AllowedOrigins:   cfg.GetCORSAllowedOrigins(),
+		AllowedHeaders:   cfg.GetCORSAllowedHeaders(),
+		AllowedMethods:   cfg.GetCORSAllowedMethods(),
+		ExposedHeaders:   cfg.GetCORSExposedHeaders(),
+		AllowCredentials: cfg.GetCORSAllowCredentials(),
+		MaxAge:           cfg.GetCORSMaxAge(),
 	}))
 
 	if cfg.GetBasePath() != "" {
