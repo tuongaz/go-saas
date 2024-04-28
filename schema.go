@@ -4,11 +4,11 @@ import (
 	_ "embed"
 )
 
-//go:embed store/persistence/schemas/sqlite.sql
+//go:embed service/auth/store/schemas/sqlite.sql
 var SqliteSchema string
 
-//go:embed store/persistence/schemas/postgres.sql
+//go:embed service/auth/store/schemas/postgres.sql
 var PostgresSchema string
 
-//go:embed store/persistence/schemas/mysql.sql
+//go:embed service/auth/store/schemas/mysql.sql
 var MySQLSchema string

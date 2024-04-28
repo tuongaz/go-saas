@@ -6,7 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/autopus/bootstrap/store/persistence"
+	"github.com/autopus/bootstrap/service/auth/store/persistence"
 )
 
 func (s *SQL) GetAccount(ctx context.Context, accountID string) (*persistence.AccountRow, error) {

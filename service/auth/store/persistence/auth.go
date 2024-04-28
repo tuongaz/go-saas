@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type AuthInterface interface {
+type Interface interface {
 	GetAccount(ctx context.Context, accountID string) (*AccountRow, error)
 	GetDefaultOwnerAccountByProvider(ctx context.Context, provider string, providerUserID string) (*AccountRow, *OrganisationRow, error)
 	CreateAuthToken(ctx context.Context, row AuthTokenRow) (sql.Result, error)

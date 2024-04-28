@@ -3,15 +3,11 @@ package store
 import (
 	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/store/persistence"
-	"github.com/autopus/bootstrap/store/persistence/sql/sqlite"
+	"github.com/autopus/bootstrap/service/auth/store/persistence"
+	"github.com/autopus/bootstrap/service/auth/store/persistence/sql/sqlite"
 )
 
 var _ Interface = (*Impl)(nil)
-
-type Interface interface {
-	AuthInterface
-}
 
 type Impl struct {
 	db persistence.Interface

@@ -8,10 +8,10 @@ import (
 	"github.com/autopus/bootstrap/pkg/errors"
 	"github.com/autopus/bootstrap/pkg/timer"
 	"github.com/autopus/bootstrap/pkg/uid"
-	"github.com/autopus/bootstrap/store/persistence"
+	"github.com/autopus/bootstrap/service/auth/store/persistence"
 )
 
-type AuthInterface interface {
+type Interface interface {
 	CreateAuthToken(ctx context.Context, row CreateAuthTokenInput) (*model.AuthToken, error)
 	GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model.AuthToken, error)
 	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AuthToken, error)

@@ -19,7 +19,7 @@ import (
 	"github.com/autopus/bootstrap/pkg/errors"
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/store"
+	"github.com/autopus/bootstrap/service/auth/store"
 )
 
 type OnAccountCreatedEvent struct {
@@ -39,7 +39,7 @@ func WithJWTLifeTimeMinutes(minutes int) func(*Options) {
 
 func New(
 	cfg config.Interface,
-	store store.AuthInterface,
+	store store.Interface,
 	encryptor encrypt.Interface,
 	signer signer.Interface,
 	opts ...func(*Options),
@@ -67,7 +67,7 @@ func New(
 
 type Service struct {
 	cfg                  config.Interface
-	store                store.AuthInterface
+	store                store.Interface
 	issuer               string
 	signer               signer.Interface
 	encryptor            encrypt.Interface

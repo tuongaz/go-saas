@@ -7,7 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/autopus/bootstrap/store/persistence"
+	"github.com/autopus/bootstrap/service/auth/store/persistence"
 )
 
 func (s *SQL) CreateAuthToken(ctx context.Context, row persistence.AuthTokenRow) (sql.Result, error) {

@@ -1,12 +1,8 @@
 package app
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/server"
-	"github.com/autopus/bootstrap/store"
 )
 
 type OnBeforeBootstrapEvent struct {
@@ -15,15 +11,6 @@ type OnBeforeBootstrapEvent struct {
 
 type OnAfterBootstrapEvent struct {
 	App *App
-}
-
-type OnBeforeStoreBootstrapEvent struct {
-	App *App
-}
-
-type OnAfterStoreBootstrapEvent struct {
-	App   *App
-	Store store.Interface
 }
 
 type OnBeforeServeEvent struct {
@@ -65,23 +52,4 @@ func (a *App) OnBeforeSchedulerBootstrap() *hooks.Hook[*OnBeforeSchedulerBootstr
 
 func (a *App) OnAfterSchedulerBootstrap() *hooks.Hook[*OnAfterSchedulerBootstrapEvent] {
 	return a.onAfterSchedulerBootstrap
-}
-
-func (a *App) BootstrapStore(ctx context.Context) error {
-	if err := a.onBeforeStoreBootstrap.Trigger(ctx, &OnBeforeStoreBootstrapEvent{
-		App: a,
-	}); err != nil {
-		return fmt.Errorf("before store start: %w", err)
-	}
-
-	a.Store, a.dbCloser = store.MustNew(a.Cfg)
-
-	if err := a.onAfterStoreBootstrap.Trigger(ctx, &OnAfterStoreBootstrapEvent{
-		App:   a,
-		Store: a.Store,
-	}); err != nil {
-		return fmt.Errorf("after store start: %w", err)
-	}
-
-	return nil
 }

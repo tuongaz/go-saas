@@ -14,19 +14,15 @@ import (
 	"github.com/autopus/bootstrap/pkg/log"
 	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/service/auth"
+	"github.com/autopus/bootstrap/service/auth/store"
 	"github.com/autopus/bootstrap/service/scheduler"
-	"github.com/autopus/bootstrap/store"
 )
 
 type App struct {
-	Cfg      config.Interface
-	Store    store.Interface
-	dbCloser func()
+	Cfg config.Interface
 
 	onBeforeBootstrap          *hooks.Hook[*OnBeforeBootstrapEvent]
 	onAfterBootstrap           *hooks.Hook[*OnAfterBootstrapEvent]
-	onBeforeStoreBootstrap     *hooks.Hook[*OnBeforeStoreBootstrapEvent]
-	onAfterStoreBootstrap      *hooks.Hook[*OnAfterStoreBootstrapEvent]
 	onBeforeSchedulerBootstrap *hooks.Hook[*OnBeforeSchedulerBootstrapEvent]
 	onAfterSchedulerBootstrap  *hooks.Hook[*OnAfterSchedulerBootstrapEvent]
 	onBeforeServe              *hooks.Hook[*OnBeforeServeEvent]
@@ -42,8 +38,6 @@ func New(cfg config.Interface) *App {
 
 		onBeforeBootstrap:          &hooks.Hook[*OnBeforeBootstrapEvent]{},
 		onAfterBootstrap:           &hooks.Hook[*OnAfterBootstrapEvent]{},
-		onBeforeStoreBootstrap:     &hooks.Hook[*OnBeforeStoreBootstrapEvent]{},
-		onAfterStoreBootstrap:      &hooks.Hook[*OnAfterStoreBootstrapEvent]{},
 		onBeforeSchedulerBootstrap: &hooks.Hook[*OnBeforeSchedulerBootstrapEvent]{},
 		onAfterSchedulerBootstrap:  &hooks.Hook[*OnAfterSchedulerBootstrapEvent]{},
 
@@ -98,9 +92,6 @@ func (a *App) Start() error {
 
 func (a *App) Shutdown() error {
 	log.Default().Warn("shutting down app")
-	if a.dbCloser != nil {
-		a.dbCloser()
-	}
 
 	return nil
 }
@@ -118,10 +109,6 @@ func (a *App) bootstrap(ctx context.Context) error {
 		App: a,
 	}); err != nil {
 		return fmt.Errorf("before bootstrap: %w", err)
-	}
-
-	if err := a.BootstrapStore(ctx); err != nil {
-		return fmt.Errorf("store bootstrap: %w", err)
 	}
 
 	if err := a.bootstrapScheduler(); err != nil {
@@ -146,6 +133,7 @@ func (a *App) bootstrapScheduler() error {
 		return nil
 	}
 
+	log.Default().Info("bootstrapping scheduler")
 	if err := a.OnBeforeSchedulerBootstrap().Trigger(context.Background(), &OnBeforeSchedulerBootstrapEvent{
 		App: a,
 	}); err != nil {
@@ -174,10 +162,20 @@ func (a *App) bootstrapAuthService() error {
 		return nil
 	}
 
+	authStore, authStoreCloser := store.MustNew(a.Cfg)
+	a.onTerminate.Add(func(ctx context.Context, e *OnTerminateEvent) error {
+		if authStoreCloser != nil {
+			authStoreCloser()
+		}
+
+		return nil
+	})
+
+	log.Default().Info("bootstrapping auth service")
 	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
 	authSrv, err := auth.New(
 		a.Cfg,
-		a.Store,
+		authStore,
 		encryptor,
 		signer.NewHS256Signer([]byte(a.Cfg.GetJWTSigningSecret())),
 		auth.WithJWTLifeTimeMinutes(a.Cfg.GetJWTTokenLifetimeMinutes()),

@@ -1,4 +1,4 @@
-package persistence
+package store
 
 type DBError struct {
 	Err error

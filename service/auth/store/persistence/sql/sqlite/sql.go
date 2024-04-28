@@ -10,7 +10,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	errors2 "github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/store/persistence"
+	"github.com/autopus/bootstrap/service/auth/store/persistence"
+	persistence2 "github.com/autopus/bootstrap/service/auth/store/persistence"
+	"github.com/autopus/bootstrap/store"
 )
 
 var _ persistence.Interface = (*SQL)(nil)
@@ -38,7 +40,7 @@ func (s *SQL) Conn() *sqlx.DB {
 
 func (s *SQL) DBExists() bool {
 	// TODO: better way to check if db exists
-	var rows []persistence.AccountRow
+	var rows []persistence2.AccountRow
 	err := s.conn.Select(&rows, "SELECT * FROM account LIMIT 1")
 	if err != nil {
 		return false
@@ -58,7 +60,7 @@ func (s *SQL) namedExecContext(
 		row,
 	)
 	if err != nil {
-		return nil, persistence.NewDBError(fmt.Errorf("named exec context: %w", err))
+		return nil, store.NewDBError(fmt.Errorf("named exec context: %w", err))
 	}
 
 	return result, nil
@@ -81,7 +83,7 @@ func (s *SQL) getContext(
 			return errors2.NewNotFoundErr(fmt.Errorf("get context: %w", err))
 		}
 
-		return persistence.NewDBError(fmt.Errorf("get context: %w", err))
+		return store.NewDBError(fmt.Errorf("get context: %w", err))
 	}
 
 	return nil
@@ -100,7 +102,7 @@ func (s *SQL) selectContext(
 		args...,
 	)
 	if err != nil {
-		return persistence.NewDBError(fmt.Errorf("select context: %w", err))
+		return store.NewDBError(fmt.Errorf("select context: %w", err))
 	}
 
 	return nil
