@@ -9,6 +9,7 @@ import (
 	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/pkg/log"
+	"github.com/autopus/bootstrap/scheduler"
 	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/service/auth"
 	"github.com/autopus/bootstrap/store"
@@ -40,31 +41,45 @@ type OnTerminateEvent struct {
 	App *App
 }
 
+type OnBeforeSchedulerBootstrapEvent struct {
+	App *App
+}
+
+type OnAfterSchedulerBootstrapEvent struct {
+	App *App
+}
+
 type App struct {
 	Cfg      config.Interface
 	Store    store.Interface
 	dbCloser func()
 
-	onBeforeBootstrap      *hooks.Hook[*OnBeforeBootstrapEvent]
-	onAfterBootstrap       *hooks.Hook[*OnAfterBootstrapEvent]
-	onBeforeStoreBootstrap *hooks.Hook[*OnBeforeStoreBootstrapEvent]
-	onAfterStoreBootstrap  *hooks.Hook[*OnAfterStoreBootstrapEvent]
-	onBeforeServe          *hooks.Hook[*OnBeforeServeEvent]
-	onTerminate            *hooks.Hook[*OnTerminateEvent]
+	onBeforeBootstrap          *hooks.Hook[*OnBeforeBootstrapEvent]
+	onAfterBootstrap           *hooks.Hook[*OnAfterBootstrapEvent]
+	onBeforeStoreBootstrap     *hooks.Hook[*OnBeforeStoreBootstrapEvent]
+	onAfterStoreBootstrap      *hooks.Hook[*OnAfterStoreBootstrapEvent]
+	onBeforeSchedulerBootstrap *hooks.Hook[*OnBeforeSchedulerBootstrapEvent]
+	onAfterSchedulerBootstrap  *hooks.Hook[*OnAfterSchedulerBootstrapEvent]
+	onBeforeServe              *hooks.Hook[*OnBeforeServeEvent]
+	onTerminate                *hooks.Hook[*OnTerminateEvent]
 
-	authSrv *auth.Service
+	authSrv   *auth.Service
+	scheduler *scheduler.Scheduler
 }
 
 func New(cfg config.Interface) *App {
 	return &App{
 		Cfg: cfg,
 
-		onBeforeBootstrap:      &hooks.Hook[*OnBeforeBootstrapEvent]{},
-		onAfterBootstrap:       &hooks.Hook[*OnAfterBootstrapEvent]{},
-		onBeforeStoreBootstrap: &hooks.Hook[*OnBeforeStoreBootstrapEvent]{},
-		onAfterStoreBootstrap:  &hooks.Hook[*OnAfterStoreBootstrapEvent]{},
-		onBeforeServe:          &hooks.Hook[*OnBeforeServeEvent]{},
-		onTerminate:            &hooks.Hook[*OnTerminateEvent]{},
+		onBeforeBootstrap:          &hooks.Hook[*OnBeforeBootstrapEvent]{},
+		onAfterBootstrap:           &hooks.Hook[*OnAfterBootstrapEvent]{},
+		onBeforeStoreBootstrap:     &hooks.Hook[*OnBeforeStoreBootstrapEvent]{},
+		onAfterStoreBootstrap:      &hooks.Hook[*OnAfterStoreBootstrapEvent]{},
+		onBeforeSchedulerBootstrap: &hooks.Hook[*OnBeforeSchedulerBootstrapEvent]{},
+		onAfterSchedulerBootstrap:  &hooks.Hook[*OnAfterSchedulerBootstrapEvent]{},
+
+		onBeforeServe: &hooks.Hook[*OnBeforeServeEvent]{},
+		onTerminate:   &hooks.Hook[*OnTerminateEvent]{},
 	}
 }
 
@@ -87,6 +102,10 @@ func (a *App) Shutdown() error {
 	return nil
 }
 
+func (a *App) Scheduler() *scheduler.Scheduler {
+	return a.scheduler
+}
+
 func (a *App) OnBeforeBootstrap() *hooks.Hook[*OnBeforeBootstrapEvent] {
 	return a.onBeforeBootstrap
 }
@@ -101,6 +120,14 @@ func (a *App) OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent] {
 
 func (a *App) OnTerminate() *hooks.Hook[*OnTerminateEvent] {
 	return a.onTerminate
+}
+
+func (a *App) OnBeforeSchedulerBootstrap() *hooks.Hook[*OnBeforeSchedulerBootstrapEvent] {
+	return a.onBeforeSchedulerBootstrap
+}
+
+func (a *App) OnAfterSchedulerBootstrap() *hooks.Hook[*OnAfterSchedulerBootstrapEvent] {
+	return a.onAfterSchedulerBootstrap
 }
 
 func (a *App) BootstrapStore(ctx context.Context) error {
@@ -137,6 +164,10 @@ func (a *App) bootstrap(ctx context.Context) error {
 		return fmt.Errorf("store bootstrap: %w", err)
 	}
 
+	if err := a.bootstrapScheduler(); err != nil {
+		return fmt.Errorf("scheduler bootstrap: %w", err)
+	}
+
 	if err := a.bootstrapAuthService(); err != nil {
 		return fmt.Errorf("auth service bootstrap: %w", err)
 	}
@@ -145,6 +176,30 @@ func (a *App) bootstrap(ctx context.Context) error {
 		App: a,
 	}); err != nil {
 		return fmt.Errorf("after bootstrap: %w", err)
+	}
+
+	return nil
+}
+
+func (a *App) bootstrapScheduler() error {
+	if err := a.OnBeforeSchedulerBootstrap().Trigger(context.Background(), &OnBeforeSchedulerBootstrapEvent{
+		App: a,
+	}); err != nil {
+		return fmt.Errorf("before scheduler bootstrap: %w", err)
+	}
+
+	s, err := scheduler.New()
+	if err != nil {
+		return fmt.Errorf("scheduler bootstrap: %w", err)
+	}
+
+	a.scheduler = s
+	s.Start()
+
+	if err := a.OnAfterSchedulerBootstrap().Trigger(context.Background(), &OnAfterSchedulerBootstrapEvent{
+		App: a,
+	}); err != nil {
+		return fmt.Errorf("after scheduler bootstrap: %w", err)
 	}
 
 	return nil
