@@ -32,8 +32,6 @@ type Interface interface {
 
 	GetSQLiteDatasource() string
 	GetSQLiteSchema() string
-	GetMySQLDataSource() string
-	GetMySQLSchema() string
 	GetPostgresDataSource() string
 	GetPostgresSchema() string
 
@@ -64,7 +62,6 @@ type Config struct {
 
 	// Datasource, credentials
 	SqliteDatasource   string `mapstructure:"AUTOPUS_SQLITE_DATASOURCE"`
-	MySqlDataSource    string `mapstructure:"AUTOPUS_MYSQL_DATASOURCE"`
 	PostgresDataSource string `mapstructure:"AUTOPUS_POSTGRES_DATASOURCE"`
 
 	//Auth providers
@@ -85,7 +82,6 @@ type Config struct {
 	EnabledServices []string `mapstructure:"AUTOPUS_ENABLED_SERVICES"`
 
 	sqliteSchema   string
-	mysqlSchema    string
 	postgresSchema string
 }
 
@@ -183,22 +179,6 @@ func (c *Config) GetSQLiteSchema() string {
 	}
 
 	return c.sqliteSchema
-}
-
-func (c *Config) GetMySQLDataSource() string {
-	return c.MySqlDataSource
-}
-
-func (c *Config) SetMySQLSchema(schema string) {
-	c.mysqlSchema = schema
-}
-
-func (c *Config) GetMySQLSchema() string {
-	if c.mysqlSchema == "" {
-		return app.MySQLSchema
-	}
-
-	return c.mysqlSchema
 }
 
 func (c *Config) GetPostgresDataSource() string {

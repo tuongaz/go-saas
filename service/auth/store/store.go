@@ -1,7 +1,10 @@
 package store
 
 import (
+	"context"
+
 	"github.com/autopus/bootstrap/config"
+	"github.com/autopus/bootstrap/model"
 	"github.com/autopus/bootstrap/pkg/log"
 	"github.com/autopus/bootstrap/service/auth/store/persistence"
 	"github.com/autopus/bootstrap/service/auth/store/persistence/sql/sqlite"
@@ -9,8 +12,24 @@ import (
 
 var _ Interface = (*Impl)(nil)
 
-type Impl struct {
-	db persistence.Interface
+type Interface interface {
+	CreateAuthToken(ctx context.Context, row CreateAuthTokenInput) (*model.AuthToken, error)
+	GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model.AuthToken, error)
+	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AuthToken, error)
+	UpdateAuthToken(ctx context.Context, id string, row UpdateAuthTokenInput) error
+	CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
+		*model.Account,
+		*model.Organisation,
+		*model.AuthProvider,
+		*model.AccountRole,
+		error,
+	)
+	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	GetAccount(ctx context.Context, accountID string) (*model.Account, error)
+	GetAccountRole(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error)
+	GetDefaultOwnerAccountByProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, *model.Organisation, error)
+	GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model.AccountRole, error)
+	GetAccountRoles(ctx context.Context, accountID string) ([]*model.AccountRole, error)
 }
 
 func NewFromDB(db persistence.Interface) *Impl {
@@ -20,7 +39,7 @@ func NewFromDB(db persistence.Interface) *Impl {
 }
 
 func MustNew(cfg config.Interface) (*Impl, func()) {
-	log.Default().Info("using sqlite db")
+	log.Default().Info("auth: using sqlite db")
 	db, closer, err := sqlite.New(cfg.GetSQLiteDatasource())
 	if err != nil {
 		log.Default().Error("failed to init sqlite db", log.ErrorAttr(err))
@@ -28,9 +47,10 @@ func MustNew(cfg config.Interface) (*Impl, func()) {
 	}
 
 	if !db.DBExists() {
+		log.Default().Info("auth: initializing sqlite db schema")
 		_, err = db.Conn().Exec(cfg.GetSQLiteSchema())
 		if err != nil {
-			log.Default().Error("failed to init sqlite db schema", log.ErrorAttr(err))
+			log.Default().Error("auth: failed to init sqlite db schema", log.ErrorAttr(err))
 			panic(err)
 		}
 	}
