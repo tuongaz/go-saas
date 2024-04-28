@@ -3,51 +3,20 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/pkg/auth/signer"
 	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/scheduler"
 	"github.com/autopus/bootstrap/server"
 	"github.com/autopus/bootstrap/service/auth"
+	"github.com/autopus/bootstrap/service/scheduler"
 	"github.com/autopus/bootstrap/store"
 )
-
-type OnBeforeBootstrapEvent struct {
-	App *App
-}
-
-type OnAfterBootstrapEvent struct {
-	App *App
-}
-
-type OnBeforeStoreBootstrapEvent struct {
-	App *App
-}
-
-type OnAfterStoreBootstrapEvent struct {
-	App   *App
-	Store store.Interface
-}
-
-type OnBeforeServeEvent struct {
-	App    *App
-	Server *server.Server
-}
-
-type OnTerminateEvent struct {
-	App *App
-}
-
-type OnBeforeSchedulerBootstrapEvent struct {
-	App *App
-}
-
-type OnAfterSchedulerBootstrapEvent struct {
-	App *App
-}
 
 type App struct {
 	Cfg      config.Interface
@@ -90,7 +59,41 @@ func (a *App) Start() error {
 		return fmt.Errorf("app bootstrap: %w", err)
 	}
 
-	return nil
+	srv := server.New(a.Cfg)
+
+	if err := a.OnBeforeServe().Trigger(
+		ctx,
+		&OnBeforeServeEvent{App: a, Server: srv},
+	); err != nil {
+		return fmt.Errorf("failed to trigger on before serve event: %w", err)
+	}
+
+	done := make(chan bool, 1)
+	go func() {
+		sigch := make(chan os.Signal, 1)
+		signal.Notify(sigch, os.Interrupt, syscall.SIGTERM)
+		<-sigch
+
+		done <- true
+	}()
+
+	go func() {
+		if err := srv.Serve(); err != nil {
+			log.Default().Error("failed to serve: %v", err)
+		}
+
+		done <- true
+	}()
+
+	<-done
+
+	return a.OnTerminate().Trigger(
+		ctx,
+		&OnTerminateEvent{App: a},
+		func(ctx context.Context, e *OnTerminateEvent) error {
+			return e.App.Shutdown()
+		},
+	)
 }
 
 func (a *App) Shutdown() error {
@@ -104,49 +107,6 @@ func (a *App) Shutdown() error {
 
 func (a *App) Scheduler() *scheduler.Scheduler {
 	return a.scheduler
-}
-
-func (a *App) OnBeforeBootstrap() *hooks.Hook[*OnBeforeBootstrapEvent] {
-	return a.onBeforeBootstrap
-}
-
-func (a *App) OnAfterBootstrap() *hooks.Hook[*OnAfterBootstrapEvent] {
-	return a.onAfterBootstrap
-}
-
-func (a *App) OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent] {
-	return a.onBeforeServe
-}
-
-func (a *App) OnTerminate() *hooks.Hook[*OnTerminateEvent] {
-	return a.onTerminate
-}
-
-func (a *App) OnBeforeSchedulerBootstrap() *hooks.Hook[*OnBeforeSchedulerBootstrapEvent] {
-	return a.onBeforeSchedulerBootstrap
-}
-
-func (a *App) OnAfterSchedulerBootstrap() *hooks.Hook[*OnAfterSchedulerBootstrapEvent] {
-	return a.onAfterSchedulerBootstrap
-}
-
-func (a *App) BootstrapStore(ctx context.Context) error {
-	if err := a.onBeforeStoreBootstrap.Trigger(ctx, &OnBeforeStoreBootstrapEvent{
-		App: a,
-	}); err != nil {
-		return fmt.Errorf("before store start: %w", err)
-	}
-
-	a.Store, a.dbCloser = store.MustNew(a.Cfg)
-
-	if err := a.onAfterStoreBootstrap.Trigger(ctx, &OnAfterStoreBootstrapEvent{
-		App:   a,
-		Store: a.Store,
-	}); err != nil {
-		return fmt.Errorf("after store start: %w", err)
-	}
-
-	return nil
 }
 
 func (a *App) GetAuthService() *auth.Service {
