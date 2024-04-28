@@ -142,6 +142,10 @@ func (a *App) bootstrap(ctx context.Context) error {
 }
 
 func (a *App) bootstrapScheduler() error {
+	if !a.Cfg.IsSchedulerServiceEnabled() {
+		return nil
+	}
+
 	if err := a.OnBeforeSchedulerBootstrap().Trigger(context.Background(), &OnBeforeSchedulerBootstrapEvent{
 		App: a,
 	}); err != nil {
@@ -166,8 +170,11 @@ func (a *App) bootstrapScheduler() error {
 }
 
 func (a *App) bootstrapAuthService() error {
+	if !a.Cfg.IsAuthServiceEnabled() {
+		return nil
+	}
+
 	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
-	// setup authentication service
 	authSrv, err := auth.New(
 		a.Cfg,
 		a.Store,

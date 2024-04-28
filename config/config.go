@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
 	"github.com/autopus/bootstrap"
@@ -12,6 +13,9 @@ import (
 
 const (
 	EnvironmentProduction = "production"
+
+	AuthService      = "auth"
+	SchedulerService = "scheduler"
 )
 
 type Interface interface {
@@ -42,6 +46,9 @@ type Interface interface {
 	GetCORSExposedHeaders() []string
 	GetCORSAllowCredentials() bool
 	GetCORSMaxAge() int
+
+	IsAuthServiceEnabled() bool
+	IsSchedulerServiceEnabled() bool
 }
 
 type Config struct {
@@ -74,6 +81,8 @@ type Config struct {
 	CORSExposedHeaders   []string `mapstructure:"AUTOPUS_CORS_EXPOSED_HEADERS"`
 	CORSAllowCredentials bool     `mapstructure:"AUTOPUS_CORS_ALLOW_CREDENTIALS"`
 	CORSMaxAge           int      `mapstructure:"AUTOPUS_CORS_MAX_AGE"`
+
+	EnabledServices []string `mapstructure:"AUTOPUS_ENABLED_SERVICES"`
 
 	sqliteSchema   string
 	mysqlSchema    string
@@ -112,6 +121,9 @@ func New() (*Config, error) {
 	viper.SetDefault("AUTOPUS_CORS_EXPOSED_HEADERS", []string{"Link"})
 	viper.SetDefault("AUTOPUS_CORS_ALLOW_CREDENTIALS", false)
 	viper.SetDefault("AUTOPUS_CORS_MAX_AGE", 300)
+
+	// Enabled services
+	viper.SetDefault("AUTOPUS_ENABLED_SERVICES", []string{AuthService, SchedulerService})
 
 	// Unmarshal environment variables into Config struct
 	var cfg Config
@@ -239,6 +251,14 @@ func (c *Config) GetCORSAllowCredentials() bool {
 
 func (c *Config) GetCORSMaxAge() int {
 	return c.CORSMaxAge
+}
+
+func (c *Config) IsAuthServiceEnabled() bool {
+	return lo.Contains(c.EnabledServices, AuthService)
+}
+
+func (c *Config) IsSchedulerServiceEnabled() bool {
+	return lo.Contains(c.EnabledServices, SchedulerService)
 }
 
 // validatePort is a custom validator for the port

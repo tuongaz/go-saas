@@ -15,6 +15,7 @@ import (
 type API struct {
 	*privateApp
 
+	cfg     config.Interface
 	authSrv *auth.Service
 }
 
@@ -24,6 +25,7 @@ type privateApp struct {
 
 func New(cfg config.Interface) *API {
 	api := &API{
+		cfg:        cfg,
 		privateApp: &privateApp{app.New(cfg)},
 	}
 
@@ -44,6 +46,10 @@ func (a *API) Start() error {
 }
 
 func (a *API) authRouterSetup(srv *server.Server) {
+	if !a.cfg.IsAuthServiceEnabled() {
+		return
+	}
+
 	rootRouter := srv.Router()
 	authSrv := a.GetAuthService()
 
