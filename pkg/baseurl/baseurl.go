@@ -10,8 +10,7 @@ import (
 type ctxString string
 
 const (
-	baseURLKey    ctxString = "base_url"
-	baseAPIURLKey ctxString = "base_api_url"
+	baseURLKey ctxString = "base_url"
 )
 
 // NewMiddleware creates a new middleware that sets the base URL in the request context.
@@ -21,13 +20,6 @@ func NewMiddleware(cfg config.Interface) func(next http.Handler) http.Handler {
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, baseURLKey, getURL(r))
 
-			basePath := getURL(r)
-			if cfg.GetBasePath() != "" {
-				basePath = getURL(r) + "/" + cfg.GetBasePath()
-			}
-			ctx = context.WithValue(ctx, baseAPIURLKey, basePath)
-			r = r.WithContext(ctx)
-
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -35,15 +27,6 @@ func NewMiddleware(cfg config.Interface) func(next http.Handler) http.Handler {
 
 func Get(ctx context.Context) string {
 	v := ctx.Value(baseURLKey)
-	if url, ok := v.(string); ok {
-		return url
-	}
-
-	return ""
-}
-
-func GetBaseAPI(ctx context.Context) string {
-	v := ctx.Value(baseAPIURLKey)
 	if url, ok := v.(string); ok {
 		return url
 	}

@@ -33,10 +33,6 @@ func New(cfg config.Interface) *Server {
 		MaxAge:           cfg.GetCORSMaxAge(),
 	}))
 
-	if cfg.GetBasePath() != "" {
-		r.Mount("/"+cfg.GetBasePath(), r)
-	}
-
 	return &Server{
 		config: cfg,
 		r:      r,
@@ -54,4 +50,15 @@ func (s *Server) Serve() error {
 	}
 
 	return nil
+}
+
+func (s *Server) PrintRoutes() {
+	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		fmt.Printf("%s %s\n", method, route)
+		return nil
+	}
+
+	if err := chi.Walk(s.Router(), walkFunc); err != nil {
+		fmt.Printf("Logging err: %s\n", err.Error())
+	}
 }

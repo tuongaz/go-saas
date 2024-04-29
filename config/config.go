@@ -23,7 +23,6 @@ type Interface interface {
 	IsProduction() bool
 
 	GetServerPort() string
-	GetBasePath() string
 
 	GetEncryptionKey() string
 	GetJWTSigningSecret() string
@@ -53,7 +52,6 @@ type Config struct {
 	Environment   string `mapstructure:"AUTOPUS_ENVIRONMENT"`
 	ServerPort    string `mapstructure:"AUTOPUS_SERVER_PORT" validate:"required,port"`
 	EncryptionKey string `mapstructure:"AUTOPUS_ENCRYPTION_KEY"`
-	BasePath      string
 
 	// Authentication
 	JWTSigningSecret        string `mapstructure:"AUTOPUS_JWT_SIGNING_SECRET"`
@@ -126,7 +124,6 @@ func New() (*Config, error) {
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal config: %w", err)
 	}
-	cfg.BasePath = "api"
 
 	if cfg.IsProduction() {
 		if cfg.EncryptionKey == "must-be-something-else-in-prod" {
@@ -147,10 +144,6 @@ func (c *Config) GetServerPort() string {
 
 func (c *Config) GetEncryptionKey() string {
 	return c.EncryptionKey
-}
-
-func (c *Config) GetBasePath() string {
-	return c.BasePath
 }
 
 func (c *Config) GetJWTSigningSecret() string {
