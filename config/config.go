@@ -83,6 +83,10 @@ type Config struct {
 	postgresSchema string
 }
 
+func SetDefault(key string, value any) {
+	viper.SetDefault(key, value)
+}
+
 func New() (*Config, error) {
 	viper.AutomaticEnv()
 
@@ -92,32 +96,32 @@ func New() (*Config, error) {
 	}
 
 	// Set default values
-	viper.SetDefault("AUTOPUS_ENVIRONMENT", "")
-	viper.SetDefault("AUTOPUS_SERVER_PORT", "8080")
-	viper.SetDefault("AUTOPUS_APPS_DIR", "./dist/apps")
-	viper.SetDefault("AUTOPUS_JWT_SIGNING_SECRET", "default-for-evaluation-change-this-for-production")
-	viper.SetDefault("AUTOPUS_JWT_TOKEN_LIFETIME_MINUTES", 15)
-	viper.SetDefault("AUTOPUS_JWT_ISSUER", "autopus.ai")
+	SetDefault("AUTOPUS_ENVIRONMENT", "")
+	SetDefault("AUTOPUS_SERVER_PORT", "8080")
+	SetDefault("AUTOPUS_APPS_DIR", "./dist/apps")
+	SetDefault("AUTOPUS_JWT_SIGNING_SECRET", "default-for-evaluation-change-this-for-production")
+	SetDefault("AUTOPUS_JWT_TOKEN_LIFETIME_MINUTES", 15)
+	SetDefault("AUTOPUS_JWT_ISSUER", "autopus.ai")
 
 	// Auth providers
-	viper.SetDefault("AUTOPUS_AUTH_GOOGLE_CLIENT_ID", "")
-	viper.SetDefault("AUTOPUS_AUTH_GOOGLE_CLIENT_SECRET", "")
-	viper.SetDefault("AUTOPUS_SQLITE_DATASOURCE", "file:autopusdb?cache=shared&_fk=1")
-	viper.SetDefault("AUTOPUS_OPENAI_API_KEY", "")
-	viper.SetDefault("AUTOPUS_MYSQL_DATASOURCE", "")
-	viper.SetDefault("AUTOPUS_POSTGRES_DATASOURCE", "")
-	viper.SetDefault("AUTOPUS_ENCRYPTION_KEY", "must-be-something-else-in-prod")
+	SetDefault("AUTOPUS_AUTH_GOOGLE_CLIENT_ID", "")
+	SetDefault("AUTOPUS_AUTH_GOOGLE_CLIENT_SECRET", "")
+	SetDefault("AUTOPUS_SQLITE_DATASOURCE", "file:autopusdb?cache=shared&_fk=1")
+	SetDefault("AUTOPUS_OPENAI_API_KEY", "")
+	SetDefault("AUTOPUS_MYSQL_DATASOURCE", "")
+	SetDefault("AUTOPUS_POSTGRES_DATASOURCE", "")
+	SetDefault("AUTOPUS_ENCRYPTION_KEY", "must-be-something-else-in-prod")
 
 	// CORS
-	viper.SetDefault("AUTOPUS_CORS_ALLOWED_ORIGINS", []string{"https://*", "http://*"})
-	viper.SetDefault("AUTOPUS_CORS_ALLOWED_HEADERS", []string{"*"})
-	viper.SetDefault("AUTOPUS_CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	viper.SetDefault("AUTOPUS_CORS_EXPOSED_HEADERS", []string{"Link"})
-	viper.SetDefault("AUTOPUS_CORS_ALLOW_CREDENTIALS", false)
-	viper.SetDefault("AUTOPUS_CORS_MAX_AGE", 300)
+	SetDefault("AUTOPUS_CORS_ALLOWED_ORIGINS", []string{"https://*", "http://*"})
+	SetDefault("AUTOPUS_CORS_ALLOWED_HEADERS", []string{"*"})
+	SetDefault("AUTOPUS_CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	SetDefault("AUTOPUS_CORS_EXPOSED_HEADERS", []string{"Link"})
+	SetDefault("AUTOPUS_CORS_ALLOW_CREDENTIALS", false)
+	SetDefault("AUTOPUS_CORS_MAX_AGE", 300)
 
 	// Enabled services
-	viper.SetDefault("AUTOPUS_ENABLED_SERVICES", []string{AuthService, SchedulerService})
+	SetDefault("AUTOPUS_ENABLED_SERVICES", []string{AuthService, SchedulerService})
 
 	// Unmarshal environment variables into Config struct
 	var cfg Config
