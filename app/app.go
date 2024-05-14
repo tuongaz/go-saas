@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/pkg/auth/signer"
 	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/hooks"
 	"github.com/autopus/bootstrap/pkg/log"
@@ -173,14 +172,21 @@ func (a *App) bootstrapAuthService() error {
 
 	log.Default().Info("bootstrapping auth service")
 	encryptor := encrypt.New(a.Cfg.GetEncryptionKey())
-	authSrv, err := auth.New(
-		a.Cfg,
-		authStore,
-		encryptor,
-		signer.NewHS256Signer([]byte(a.Cfg.GetJWTSigningSecret())),
-		auth.WithJWTLifeTimeMinutes(a.Cfg.GetJWTTokenLifetimeMinutes()),
-	)
-
+	authSrv, err := auth.NewBuilder().
+		Store(authStore).
+		Encryptor(encryptor).
+		JWTSecret(a.Cfg.GetJWTSigningSecret()).
+		JWTIssuer(a.Cfg.GetJWTIssuer()).
+		JWTLifeTime(a.Cfg.GetJWTTokenLifetimeMinutes()).
+		RedirectURL("https://f856-124-187-102-47.ngrok-free.app/auth/google/callback").
+		AddGoogleProvider(
+			a.Cfg.GetAuthGoogleClientID(),
+			a.Cfg.GetAuthGoogleClientSecret(),
+			"https://f856-124-187-102-47.ngrok-free.app/auth/failure",
+			"https://f856-124-187-102-47.ngrok-free.app/auth/success",
+			[]string{"https://www.googleapis.com/auth/userinfo.profile"},
+		).
+		Build()
 	if err != nil {
 		return fmt.Errorf("failed to init auth service: %w", err)
 	}

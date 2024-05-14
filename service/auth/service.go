@@ -10,11 +10,9 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/autopus/bootstrap/config"
 	"github.com/autopus/bootstrap/model"
 	"github.com/autopus/bootstrap/pkg/auth/oauth2"
 	"github.com/autopus/bootstrap/pkg/auth/signer"
-	"github.com/autopus/bootstrap/pkg/baseurl"
 	"github.com/autopus/bootstrap/pkg/encrypt"
 	"github.com/autopus/bootstrap/pkg/errors"
 	"github.com/autopus/bootstrap/pkg/hooks"
@@ -37,43 +35,15 @@ func WithJWTLifeTimeMinutes(minutes int) func(*Options) {
 	}
 }
 
-func New(
-	cfg config.Interface,
-	store store.Interface,
-	encryptor encrypt.Interface,
-	signer signer.Interface,
-	opts ...func(*Options),
-) (*Service, error) {
-	defaultOptions := Options{
-		JWTLifeTimeMinutes: 1,
-	}
-	for _, opt := range opts {
-		opt(&defaultOptions)
-	}
-
-	s := &Service{
-		cfg:                  cfg,
-		issuer:               cfg.GetJWTIssuer(),
-		store:                store,
-		signer:               signer,
-		encryptor:            encryptor,
-		tokenLifeTimeMinutes: time.Minute * time.Duration(defaultOptions.JWTLifeTimeMinutes),
-
-		onAccountCreated: &hooks.Hook[*OnAccountCreatedEvent]{},
-	}
-
-	return s, nil
-}
-
 type Service struct {
-	cfg                  config.Interface
 	store                store.Interface
-	issuer               string
 	signer               signer.Interface
 	encryptor            encrypt.Interface
 	tokenLifeTimeMinutes time.Duration
-
-	onAccountCreated *hooks.Hook[*OnAccountCreatedEvent]
+	jwtIssuer            string
+	redirectURL          string
+	providers            map[string]provider
+	onAccountCreated     *hooks.Hook[*OnAccountCreatedEvent]
 }
 
 func (s *Service) OnAccountCreated() *hooks.Hook[*OnAccountCreatedEvent] {
@@ -193,10 +163,10 @@ func (s *Service) newAuthenticatedInfo(
 	claims := model.CustomClaims{
 		Organisation: accountRole.OrganisationID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:  s.issuer,
+			Issuer:  s.jwtIssuer,
 			Subject: accountRole.AccountID,
 			Audience: jwt.ClaimStrings{
-				s.issuer,
+				s.jwtIssuer,
 			},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.tokenLifeTimeMinutes)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -309,7 +279,7 @@ func (s *Service) isPasswordMatched(password, hashedPassword string) bool {
 	return true
 }
 
-func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, user oauth2.User) {
+func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider provider, user oauth2.User) {
 	ctx := r.Context()
 
 	authInfo, err := s.oauth2SignupOrLogin(
@@ -318,13 +288,13 @@ func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, user
 	)
 	if err != nil {
 		log.Default().ErrorContext(ctx, "failed to signup or login", log.ErrorAttr(err))
-		http.Redirect(w, r, fmt.Sprintf("%s/auth/signin-failed", baseurl.Get(ctx)), http.StatusFound)
+		http.Redirect(w, r, oauthProvider.failureURL, http.StatusFound)
 		return
 	}
 
 	redirectURL := fmt.Sprintf(
 		"%s?token=%s&refresh_token=%s",
-		fmt.Sprintf("%s/auth/signin-success", baseurl.Get(ctx)),
+		oauthProvider.successURL,
 		authInfo.Token,
 		authInfo.RefreshToken,
 	)

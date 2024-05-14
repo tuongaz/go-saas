@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/cors"
 
 	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/pkg/baseurl"
 )
 
 type Server struct {
@@ -22,7 +21,6 @@ func New(cfg config.Interface) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(baseurl.NewMiddleware(cfg))
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.GetCORSAllowedOrigins(),

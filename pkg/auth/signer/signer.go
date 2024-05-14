@@ -79,7 +79,7 @@ func (h SecretKeySigner) ParseCustomClaims(tokenString string) (*model.CustomCla
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("parse token: %w", err)
+		return nil, fmt.Errorf("parse custom claims: %w", err)
 	}
 
 	if claims, ok := token.Claims.(*model.CustomClaims); ok && token.Valid {

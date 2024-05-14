@@ -1,13 +1,13 @@
 package auth
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/autopus/bootstrap/pkg/auth/oauth2"
 	"github.com/autopus/bootstrap/pkg/auth/oauth2/google"
-	"github.com/autopus/bootstrap/pkg/baseurl"
 	"github.com/autopus/bootstrap/pkg/httputil"
 )
 
@@ -18,11 +18,24 @@ func (s *Service) MeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Oauth2AuthenticateHandler(w http.ResponseWriter, r *http.Request) {
-	google.New(s.getGoogleAuthConfig(r.Context())).LoginHandler(w, r, nil)
+	oauth2Config, _, err := s.getOauth2Config(r)
+	if err != nil {
+		httputil.HandleResponse(r.Context(), w, nil, err)
+		return
+	}
+
+	// TODO: Support other providers than Google
+	google.New(*oauth2Config).LoginHandler(w, r, nil)
 }
 
 func (s *Service) Oauth2LoginSignupCallbackHandler(w http.ResponseWriter, r *http.Request) {
-	gauth := google.New(s.getGoogleAuthConfig(r.Context()))
+	oauth2Config, oauth2Provider, err := s.getOauth2Config(r)
+	if err != nil {
+		httputil.HandleResponse(r.Context(), w, nil, err)
+		return
+	}
+
+	gauth := google.New(*oauth2Config)
 	detail, err := gauth.CallbackHandler(w, r)
 	if err != nil {
 		httputil.HandleResponse(r.Context(), w, nil, err)
@@ -35,7 +48,8 @@ func (s *Service) Oauth2LoginSignupCallbackHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	s.oauth2SignupLogin(w, r, *user)
+	// TODO: Support other providers than Google
+	s.oauth2SignupLogin(w, r, *oauth2Provider, *user)
 }
 
 func (s *Service) SignupHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,11 +82,17 @@ type TokenRequestInput struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *Service) getGoogleAuthConfig(ctx context.Context) oauth2.Config {
-	return oauth2.Config{
-		ClientID:     s.cfg.GetAuthGoogleClientID(),
-		ClientSecret: s.cfg.GetAuthGoogleClientSecret(),
-		RedirectURL:  fmt.Sprintf("%s/auth/google/callback", baseurl.Get(ctx)),
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile"},
+func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *provider, error) {
+	providerName := chi.URLParam(r, "provider")
+	oauthProvider, ok := s.providers[providerName]
+	if !ok {
+		return nil, nil, fmt.Errorf("provider not found: %s", providerName)
 	}
+
+	return &oauth2.Config{
+		ClientID:     oauthProvider.clientID,
+		ClientSecret: oauthProvider.clientSecret,
+		RedirectURL:  oauthProvider.redirectURL,
+		Scopes:       oauthProvider.scopes,
+	}, &oauthProvider, nil
 }
