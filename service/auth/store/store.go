@@ -8,10 +8,10 @@ import (
 	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/log"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence"
-	"github.com/tuongaz/go-saas/service/auth/store/persistence/sql/sqlite"
+	"github.com/tuongaz/go-saas/service/auth/store/persistence/sqlite"
 )
 
-//go:embed schemas/sqlite.sql
+//go:embed persistence/sqlite/sqlite.sql
 var sqliteSchema string
 
 var _ Interface = (*Impl)(nil)

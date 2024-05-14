@@ -18,9 +18,16 @@ var _ Interface = (*App)(nil)
 type Interface interface {
 	Config() config.Interface
 
+	// OnBeforeBootstrap returns the hook that is triggered before the app is bootstrapped.
 	OnBeforeBootstrap() *hooks.Hook[*OnBeforeBootstrapEvent]
+
+	// OnAfterBootstrap returns the hook that is triggered after the app is bootstrapped.
 	OnAfterBootstrap() *hooks.Hook[*OnAfterBootstrapEvent]
+
+	// OnTerminate returns the hook that is triggered when the app is terminated.
 	OnTerminate() *hooks.Hook[*OnTerminateEvent]
+
+	// OnBeforeServe returns the hook that is triggered before the app starts serving.
 	OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent]
 }
 
@@ -109,13 +116,6 @@ func (a *App) bootstrap(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("before bootstrap: %w", err)
 	}
-	//
-	//for _, s := range a.services {
-	//	log.Info("bootstrapping service", "service", s.ID())
-	//	if err := s.Bootstrap(ctx); err != nil {
-	//		return fmt.Errorf("service bootstrap: %w", err)
-	//	}
-	//}
 
 	if err := a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{
 		App: a,

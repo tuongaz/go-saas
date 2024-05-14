@@ -22,7 +22,7 @@ type Interface interface {
 	RemoveJobByTags(tags ...string)
 }
 
-func Register(appInstance app.Interface) {
+func Register(appInstance app.Interface) *Scheduler {
 	s := &Scheduler{}
 
 	appInstance.OnAfterBootstrap().Add(func(ctx context.Context, e *app.OnAfterBootstrapEvent) error {
@@ -40,6 +40,8 @@ func Register(appInstance app.Interface) {
 
 		return nil
 	})
+
+	return s
 }
 
 type Scheduler struct {
