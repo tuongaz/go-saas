@@ -101,7 +101,7 @@ type Config struct {
 	Providers               []OAuth2Provider
 }
 
-func Register(appInstance app.Interface, cfg Config) {
+func Register(appInstance app.Interface, cfg Config) *Service {
 	if cfg.JWTTokenLifetimeMinutes == 0 {
 		cfg.JWTTokenLifetimeMinutes = 30
 	}
@@ -142,6 +142,8 @@ func Register(appInstance app.Interface, cfg Config) {
 		}
 		return nil
 	})
+
+	return authSrv
 }
 
 func (s *Service) OnAccountCreated() *hooks.Hook[*OnAccountCreatedEvent] {
