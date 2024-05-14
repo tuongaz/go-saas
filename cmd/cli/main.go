@@ -1,6 +1,6 @@
 package main
 
-import "github.com/autopus/bootstrap/cmd/cli/cmd"
+import "github.com/tuongaz/go-saas/cmd/cli/cmd"
 
 func main() {
 	cmd.Execute()

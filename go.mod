@@ -1,4 +1,4 @@
-module github.com/autopus/bootstrap
+module github.com/tuongaz/go-saas
 
 go 1.21.0
 

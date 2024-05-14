@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/autopus/bootstrap/pkg/types"
+	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 func TestReplace(t *testing.T) {

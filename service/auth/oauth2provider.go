@@ -10,9 +10,9 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/pkg/httputil"
-	"github.com/autopus/bootstrap/pkg/types"
+	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/httputil"
+	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 type Client struct {

@@ -3,7 +3,7 @@ package validator
 import (
 	"github.com/go-playground/validator/v10"
 
-	"github.com/autopus/bootstrap/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/errors"
 )
 
 var validate *validator.Validate

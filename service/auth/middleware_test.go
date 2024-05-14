@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/autopus/bootstrap/pkg/auth/signer"
+	"github.com/tuongaz/go-saas/pkg/auth/signer"
 )
 
 func TestMiddlewareWithInvalidToken(t *testing.T) {

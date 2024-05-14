@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/autopus/bootstrap/pkg/hooks"
-	"github.com/autopus/bootstrap/server"
+	"github.com/tuongaz/go-saas/pkg/hooks"
+	"github.com/tuongaz/go-saas/server"
 )
 
 type OnBeforeBootstrapEvent struct {

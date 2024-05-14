@@ -6,8 +6,8 @@ import (
 
 	"go.uber.org/multierr"
 
-	"github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/pkg/types"
+	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 const (

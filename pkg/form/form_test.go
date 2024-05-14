@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/autopus/bootstrap/pkg/types"
+	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 func TestForm_ValidateFields(t *testing.T) {

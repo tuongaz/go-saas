@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/autopus/bootstrap/model"
+	"github.com/tuongaz/go-saas/model"
 )
 
 var _ Interface = (*SecretKeySigner)(nil)

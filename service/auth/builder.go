@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/autopus/bootstrap/pkg/auth/signer"
-	"github.com/autopus/bootstrap/pkg/encrypt"
-	"github.com/autopus/bootstrap/pkg/hooks"
-	"github.com/autopus/bootstrap/service/auth/store"
+	"github.com/tuongaz/go-saas/pkg/auth/signer"
+	"github.com/tuongaz/go-saas/pkg/encrypt"
+	"github.com/tuongaz/go-saas/pkg/hooks"
+	"github.com/tuongaz/go-saas/service/auth/store"
 )
 
 type provider struct {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/autopus/bootstrap/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/errors"
 )
 
 type mockResponseWriter struct {

@@ -9,10 +9,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 
-	errors2 "github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/service/auth/store/persistence"
-	persistence2 "github.com/autopus/bootstrap/service/auth/store/persistence"
-	"github.com/autopus/bootstrap/store"
+	errors2 "github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/service/auth/store/persistence"
+	persistence2 "github.com/tuongaz/go-saas/service/auth/store/persistence"
+	"github.com/tuongaz/go-saas/store"
 )
 
 var _ persistence.Interface = (*SQL)(nil)

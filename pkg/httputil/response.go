@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/pkg/log"
+	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 type Response struct {

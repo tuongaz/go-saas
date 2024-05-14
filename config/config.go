@@ -7,8 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
-
-	"github.com/autopus/bootstrap"
+	app "github.com/tuongaz/go-saas"
 )
 
 const (

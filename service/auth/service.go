@@ -10,14 +10,14 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/autopus/bootstrap/model"
-	"github.com/autopus/bootstrap/pkg/auth/oauth2"
-	"github.com/autopus/bootstrap/pkg/auth/signer"
-	"github.com/autopus/bootstrap/pkg/encrypt"
-	"github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/pkg/hooks"
-	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/service/auth/store"
+	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
+	"github.com/tuongaz/go-saas/pkg/auth/signer"
+	"github.com/tuongaz/go-saas/pkg/encrypt"
+	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/hooks"
+	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/service/auth/store"
 )
 
 type OnAccountCreatedEvent struct {

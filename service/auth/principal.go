@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/autopus/bootstrap/model"
-	"github.com/autopus/bootstrap/pkg/log"
+	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 var (

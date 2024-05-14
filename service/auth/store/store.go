@@ -3,11 +3,11 @@ package store
 import (
 	"context"
 
-	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/model"
-	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/service/auth/store/persistence"
-	"github.com/autopus/bootstrap/service/auth/store/persistence/sql/sqlite"
+	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/service/auth/store/persistence"
+	"github.com/tuongaz/go-saas/service/auth/store/persistence/sql/sqlite"
 )
 
 var _ Interface = (*Impl)(nil)

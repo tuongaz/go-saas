@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/autopus/bootstrap/model"
+	"github.com/tuongaz/go-saas/model"
 )
 
 func TestPrincipalToCtxAndFromCtx(t *testing.T) {

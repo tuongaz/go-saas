@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/autopus/bootstrap/model"
-	"github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/pkg/httputil"
+	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
 func (s *Service) NewMiddleware() func(next http.Handler) http.Handler {

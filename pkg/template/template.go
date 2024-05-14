@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/autopus/bootstrap/pkg/types"
+	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 func MapReplace(input types.M, ctx types.M) types.M {

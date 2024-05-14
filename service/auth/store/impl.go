@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/autopus/bootstrap/model"
-	"github.com/autopus/bootstrap/pkg/errors"
-	"github.com/autopus/bootstrap/pkg/timer"
-	"github.com/autopus/bootstrap/pkg/uid"
-	"github.com/autopus/bootstrap/service/auth/store/persistence"
+	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/timer"
+	"github.com/tuongaz/go-saas/pkg/uid"
+	"github.com/tuongaz/go-saas/service/auth/store/persistence"
 )
 
 type Impl struct {

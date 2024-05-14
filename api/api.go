@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/autopus/bootstrap/app"
-	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/server"
-	"github.com/autopus/bootstrap/service/auth"
+	"github.com/tuongaz/go-saas/app"
+	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/server"
+	"github.com/tuongaz/go-saas/service/auth"
 )
 
 type API struct {

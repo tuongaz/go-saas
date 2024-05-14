@@ -6,8 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/pkg/uid"
+	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/pkg/uid"
 )
 
 type Handler[T any] func(context.Context, T) error

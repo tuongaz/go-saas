@@ -7,7 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/autopus/bootstrap/model"
+	"github.com/tuongaz/go-saas/model"
 )
 
 func TestSignSuccess(t *testing.T) {

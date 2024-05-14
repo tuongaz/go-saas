@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/autopus/bootstrap/api"
-	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/pkg/log"
+	"github.com/tuongaz/go-saas/api"
+	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 func init() {

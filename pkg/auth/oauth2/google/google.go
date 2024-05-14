@@ -9,8 +9,8 @@ import (
 
 	goauth "golang.org/x/oauth2"
 
-	"github.com/autopus/bootstrap/pkg/auth/oauth2"
-	"github.com/autopus/bootstrap/pkg/types"
+	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
+	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 var _ oauth2.Provider = (*Google)(nil)

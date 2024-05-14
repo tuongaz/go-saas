@@ -7,14 +7,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/autopus/bootstrap/config"
-	"github.com/autopus/bootstrap/pkg/encrypt"
-	"github.com/autopus/bootstrap/pkg/hooks"
-	"github.com/autopus/bootstrap/pkg/log"
-	"github.com/autopus/bootstrap/server"
-	"github.com/autopus/bootstrap/service/auth"
-	"github.com/autopus/bootstrap/service/auth/store"
-	"github.com/autopus/bootstrap/service/scheduler"
+	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/pkg/encrypt"
+	"github.com/tuongaz/go-saas/pkg/hooks"
+	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/server"
+	"github.com/tuongaz/go-saas/service/auth"
+	"github.com/tuongaz/go-saas/service/auth/store"
+	"github.com/tuongaz/go-saas/service/scheduler"
 )
 
 type App struct {

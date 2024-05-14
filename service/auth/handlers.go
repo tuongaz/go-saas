@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/autopus/bootstrap/pkg/auth/oauth2"
-	"github.com/autopus/bootstrap/pkg/auth/oauth2/google"
-	"github.com/autopus/bootstrap/pkg/httputil"
+	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
+	"github.com/tuongaz/go-saas/pkg/auth/oauth2/google"
+	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
 func (s *Service) MeHandler(w http.ResponseWriter, r *http.Request) {
