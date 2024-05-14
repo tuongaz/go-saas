@@ -1,11 +1,14 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/tuongaz/go-saas/app"
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 var _ Interface = &Scheduler{}
@@ -19,19 +22,38 @@ type Interface interface {
 	RemoveJobByTags(tags ...string)
 }
 
-func New() (*Scheduler, error) {
-	scheduler, err := gocron.NewScheduler()
-	if err != nil {
-		return nil, fmt.Errorf("new scheduler: %w", err)
-	}
+func Register(appInstance app.Interface) {
+	s := &Scheduler{}
 
-	return &Scheduler{
-		scheduler: scheduler,
-	}, nil
+	appInstance.OnAfterBootstrap().Add(func(ctx context.Context, e *app.OnAfterBootstrapEvent) error {
+		if err := s.bootstrap(); err != nil {
+			return fmt.Errorf("scheduler bootstrap: %w", err)
+		}
+
+		return nil
+	})
+
+	appInstance.OnBeforeServe().Add(func(ctx context.Context, e *app.OnBeforeServeEvent) error {
+		if err := s.start(ctx); err != nil {
+			return fmt.Errorf("scheduler start: %w", err)
+		}
+
+		return nil
+	})
 }
 
 type Scheduler struct {
 	scheduler gocron.Scheduler
+}
+
+func (s *Scheduler) bootstrap() error {
+	scheduler, err := gocron.NewScheduler()
+	if err != nil {
+		return fmt.Errorf("new scheduler: %w", err)
+	}
+
+	s.scheduler = scheduler
+	return nil
 }
 
 func (s *Scheduler) RemoveJob(id string) error {
@@ -50,8 +72,10 @@ func (s *Scheduler) RemoveJobByTags(tags ...string) {
 	s.scheduler.RemoveByTags(tags...)
 }
 
-func (s *Scheduler) Start() {
+func (s *Scheduler) start(ctx context.Context) error {
+	log.Info("starting scheduler")
 	s.scheduler.Start()
+	return nil
 }
 
 func (s *Scheduler) NewDurationJob(d time.Duration, job func(), tags ...string) (id string, err error) {

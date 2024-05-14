@@ -22,14 +22,6 @@ type OnTerminateEvent struct {
 	App *App
 }
 
-type OnBeforeSchedulerBootstrapEvent struct {
-	App *App
-}
-
-type OnAfterSchedulerBootstrapEvent struct {
-	App *App
-}
-
 func (a *App) OnBeforeBootstrap() *hooks.Hook[*OnBeforeBootstrapEvent] {
 	return a.onBeforeBootstrap
 }
@@ -44,12 +36,4 @@ func (a *App) OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent] {
 
 func (a *App) OnTerminate() *hooks.Hook[*OnTerminateEvent] {
 	return a.onTerminate
-}
-
-func (a *App) OnBeforeSchedulerBootstrap() *hooks.Hook[*OnBeforeSchedulerBootstrapEvent] {
-	return a.onBeforeSchedulerBootstrap
-}
-
-func (a *App) OnAfterSchedulerBootstrap() *hooks.Hook[*OnAfterSchedulerBootstrapEvent] {
-	return a.onAfterSchedulerBootstrap
 }

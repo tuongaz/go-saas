@@ -82,7 +82,7 @@ type TokenRequestInput struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *provider, error) {
+func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *OAuth2Provider, error) {
 	providerName := chi.URLParam(r, "provider")
 	oauthProvider, ok := s.providers[providerName]
 	if !ok {
@@ -90,9 +90,9 @@ func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *provider, e
 	}
 
 	return &oauth2.Config{
-		ClientID:     oauthProvider.clientID,
-		ClientSecret: oauthProvider.clientSecret,
-		RedirectURL:  oauthProvider.redirectURL,
-		Scopes:       oauthProvider.scopes,
+		ClientID:     oauthProvider.ClientID,
+		ClientSecret: oauthProvider.ClientSecret,
+		RedirectURL:  oauthProvider.RedirectURL,
+		Scopes:       oauthProvider.Scopes,
 	}, &oauthProvider, nil
 }

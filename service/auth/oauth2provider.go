@@ -37,8 +37,6 @@ type RefreshToken struct {
 	ExpiresIn int64
 }
 
-type OAuth2Provider struct{}
-
 func (s *Service) TokenAuthorizationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

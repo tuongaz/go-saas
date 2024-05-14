@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/tuongaz/go-saas/app"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/tuongaz/go-saas/model"
@@ -20,30 +22,126 @@ import (
 	"github.com/tuongaz/go-saas/service/auth/store"
 )
 
+const ID = "auth"
+
+func (s *Service) ID() string {
+	return ID
+}
+
+func (s *Service) bootstrap() error {
+	authStore, authStoreCloser := store.MustNew(s.app.Config())
+	s.app.OnTerminate().Add(func(ctx context.Context, e *app.OnTerminateEvent) error {
+		if authStoreCloser != nil {
+			authStoreCloser()
+		}
+
+		return nil
+	})
+	s.store = authStore
+
+	s.app.OnBeforeServe().Add(func(ctx context.Context, e *app.OnBeforeServeEvent) error {
+		rootRouter := e.Server.Router()
+		authMiddleware := s.NewMiddleware()
+
+		rootRouter.Route("/auth", func(r chi.Router) {
+			// public routes
+			r.Post("/signup", s.SignupHandler)
+			r.Post("/login", s.LoginHandler)
+			r.Post("/token", s.AuthTokenHandler)
+			r.Get("/token/authorization", s.TokenAuthorizationHandler)
+			r.Get("/{provider}", s.Oauth2AuthenticateHandler)
+			r.Get("/{provider}/callback", s.Oauth2LoginSignupCallbackHandler)
+
+			// private routes
+			r.With(authMiddleware).Get("/me", s.MeHandler)
+		})
+
+		return nil
+	})
+
+	return nil
+}
+
+func (s *Service) Start(ctx context.Context) error {
+	log.Info("auth service started")
+	return nil
+}
+
 type OnAccountCreatedEvent struct {
 	AccountID      string
 	OrganisationID string
 }
 
-type Options struct {
-	JWTLifeTimeMinutes int
-}
-
-func WithJWTLifeTimeMinutes(minutes int) func(*Options) {
-	return func(c *Options) {
-		c.JWTLifeTimeMinutes = minutes
-	}
-}
-
 type Service struct {
+	app                  app.Interface
 	store                store.Interface
 	signer               signer.Interface
 	encryptor            encrypt.Interface
 	tokenLifeTimeMinutes time.Duration
 	jwtIssuer            string
 	redirectURL          string
-	providers            map[string]provider
+	providers            map[string]OAuth2Provider
 	onAccountCreated     *hooks.Hook[*OnAccountCreatedEvent]
+}
+
+type OAuth2Provider struct {
+	Name         string
+	ClientID     string
+	ClientSecret string
+	Scopes       []string
+	RedirectURL  string
+	FailureURL   string
+	SuccessURL   string
+}
+
+type Config struct {
+	JWTSigningSecret        string
+	JWTIssuer               string
+	JWTTokenLifetimeMinutes int
+	Providers               []OAuth2Provider
+}
+
+func Register(appInstance app.Interface, cfg Config) {
+	if cfg.JWTTokenLifetimeMinutes == 0 {
+		cfg.JWTTokenLifetimeMinutes = 30
+	}
+
+	if cfg.JWTSigningSecret == "" {
+		cfg.JWTSigningSecret = "signing-secret-please-change-me"
+	}
+
+	if cfg.JWTIssuer == "" {
+		cfg.JWTIssuer = "go-saas-issuer"
+	}
+
+	providers := make(map[string]OAuth2Provider)
+	for _, p := range cfg.Providers {
+		providers[p.Name] = p
+	}
+
+	authSrv := &Service{
+		app:                  appInstance,
+		signer:               signer.NewHS256Signer([]byte(cfg.JWTSigningSecret)),
+		encryptor:            encrypt.New(appInstance.Config().GetEncryptionKey()),
+		jwtIssuer:            cfg.JWTIssuer,
+		tokenLifeTimeMinutes: time.Duration(cfg.JWTTokenLifetimeMinutes) * time.Minute,
+		providers:            providers,
+		onAccountCreated:     &hooks.Hook[*OnAccountCreatedEvent]{},
+	}
+
+	appInstance.OnAfterBootstrap().Add(func(ctx context.Context, e *app.OnAfterBootstrapEvent) error {
+		if err := authSrv.bootstrap(); err != nil {
+			return fmt.Errorf("auth service bootstrap: %w", err)
+		}
+		return nil
+	})
+
+	appInstance.OnBeforeServe().Add(func(ctx context.Context, e *app.OnBeforeServeEvent) error {
+		if err := authSrv.Start(ctx); err != nil {
+			return fmt.Errorf("starting auth service: %w", err)
+		}
+		return nil
+	})
 }
 
 func (s *Service) OnAccountCreated() *hooks.Hook[*OnAccountCreatedEvent] {
@@ -279,7 +377,7 @@ func (s *Service) isPasswordMatched(password, hashedPassword string) bool {
 	return true
 }
 
-func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider provider, user oauth2.User) {
+func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider OAuth2Provider, user oauth2.User) {
 	ctx := r.Context()
 
 	authInfo, err := s.oauth2SignupOrLogin(
@@ -288,13 +386,13 @@ func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oaut
 	)
 	if err != nil {
 		log.Default().ErrorContext(ctx, "failed to signup or login", log.ErrorAttr(err))
-		http.Redirect(w, r, oauthProvider.failureURL, http.StatusFound)
+		http.Redirect(w, r, oauthProvider.FailureURL, http.StatusFound)
 		return
 	}
 
 	redirectURL := fmt.Sprintf(
 		"%s?token=%s&refresh_token=%s",
-		oauthProvider.successURL,
+		oauthProvider.SuccessURL,
 		authInfo.Token,
 		authInfo.RefreshToken,
 	)

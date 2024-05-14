@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	_ "embed"
 
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/model"
@@ -9,6 +10,9 @@ import (
 	"github.com/tuongaz/go-saas/service/auth/store/persistence"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence/sql/sqlite"
 )
+
+//go:embed schemas/sqlite.sql
+var sqliteSchema string
 
 var _ Interface = (*Impl)(nil)
 
@@ -48,7 +52,7 @@ func MustNew(cfg config.Interface) (*Impl, func()) {
 
 	if !db.DBExists() {
 		log.Default().Info("auth: initializing sqlite db schema")
-		_, err = db.Conn().Exec(cfg.GetSQLiteSchema())
+		_, err = db.Conn().Exec(sqliteSchema)
 		if err != nil {
 			log.Default().Error("auth: failed to init sqlite db schema", log.ErrorAttr(err))
 			panic(err)
