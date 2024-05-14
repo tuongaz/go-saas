@@ -13,10 +13,26 @@ import (
 	"github.com/tuongaz/go-saas/pkg/types"
 )
 
-var _ oauth2.Provider = (*Google)(nil)
+const Name = "google"
 
 type Google struct {
 	oauth2 *oauth2.OAuth2
+}
+
+func New(cfg oauth2.Config) *Google {
+	return &Google{
+		oauth2: oauth2.New(&goauth.Config{
+			ClientID:     cfg.ClientID,
+			ClientSecret: cfg.ClientSecret,
+			RedirectURL:  cfg.RedirectURL,
+			Scopes:       cfg.Scopes,
+			Endpoint: goauth.Endpoint{
+				AuthURL:   "https://accounts.google.com/o/oauth2/auth",
+				TokenURL:  "https://oauth2.googleapis.com/token",
+				AuthStyle: goauth.AuthStyleInParams,
+			},
+		}),
+	}
 }
 
 func (g *Google) LoginHandler(w http.ResponseWriter, r *http.Request, state types.M) {
@@ -40,8 +56,6 @@ func (g *Google) GetUser(ctx context.Context, token *goauth.Token) (*oauth2.User
 		return nil, err
 	}
 
-	fmt.Println(string(body))
-
 	var data types.M
 	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, err
@@ -60,22 +74,6 @@ func (g *Google) GetUser(ctx context.Context, token *goauth.Token) (*oauth2.User
 		RefreshToken: token.RefreshToken,
 		IDToken:      token.Extra("id_token").(string),
 		ExpiresAt:    token.Expiry,
-		Provider:     "google",
+		Provider:     Name,
 	}, nil
-}
-
-func New(cfg oauth2.Config) *Google {
-	return &Google{
-		oauth2: oauth2.New(&goauth.Config{
-			ClientID:     cfg.ClientID,
-			ClientSecret: cfg.ClientSecret,
-			RedirectURL:  cfg.RedirectURL,
-			Scopes:       cfg.Scopes,
-			Endpoint: goauth.Endpoint{
-				AuthURL:   "https://accounts.google.com/o/oauth2/auth",
-				TokenURL:  "https://oauth2.googleapis.com/token",
-				AuthStyle: goauth.AuthStyleInParams,
-			},
-		}),
-	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
+// NewMiddleware creates a new middleware that authenticates the user and sets the principal in the context.
 func (s *Service) NewMiddleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

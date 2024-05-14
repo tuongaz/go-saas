@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/log"
@@ -10,8 +9,6 @@ import (
 
 var (
 	principalKey = "principal"
-
-	HeaderOrganisationID = "X-Organisation-ID"
 )
 
 func PrincipalToCtx(ctx context.Context, principal model.Principal) context.Context {
@@ -33,7 +30,4 @@ func AccountID(ctx context.Context) string {
 }
 func OrganisationID(ctx context.Context) string {
 	return PrincipalFromCtx(ctx).OrganisationID
-}
-func GetOrganisationIDFromRequest(r *http.Request) string {
-	return r.Header.Get(HeaderOrganisationID)
 }

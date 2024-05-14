@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
+	goauth "golang.org/x/oauth2"
 
 	"github.com/tuongaz/go-saas/pkg/types"
 )
@@ -23,6 +25,7 @@ const (
 )
 
 type Provider interface {
+	GetUser(ctx context.Context, token *goauth.Token) (*User, error)
 	LoginHandler(w http.ResponseWriter, r *http.Request, state types.M)
 	CallbackHandler(w http.ResponseWriter, r *http.Request) (*AuthDetail, error)
 }

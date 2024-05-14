@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,12 +41,4 @@ func TestAccountIDProjectIDOrganisationID(t *testing.T) {
 
 	assert.Equal(t, "acc123", AccountID(ctx))
 	assert.Equal(t, "org123", OrganisationID(ctx))
-}
-
-func TestGetOrganisationIDFromRequest(t *testing.T) {
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set(HeaderOrganisationID, "org123")
-
-	organisationID := GetOrganisationIDFromRequest(req)
-	assert.Equal(t, "org123", organisationID)
 }
