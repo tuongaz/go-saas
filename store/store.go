@@ -34,13 +34,13 @@ func New(cfg config.Interface) (*Store, error) {
 	}
 
 	if !exists {
-		_, err := db.Exec(fmt.Sprintf("CREATE DATABASE %s", cfg.GetDBName()))
+		_, err := db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create database: %w", err)
 		}
-		log.Info("Database created.", "database", cfg.GetDBName())
+		log.Info("Database created.", "database", dbName)
 	} else {
-		log.Info("Database already exists.", "database", cfg.GetDBName())
+		log.Info("Database already exists.", "database", dbName)
 	}
 
 	return &Store{
