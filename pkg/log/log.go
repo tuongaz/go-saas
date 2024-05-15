@@ -25,6 +25,11 @@ func Error(msg string, args ...any) {
 	defaultLogger.Error(msg, args...)
 }
 
+func Panic(msg string, args ...any) {
+	defaultLogger.Error(msg, args...)
+	panic(msg)
+}
+
 func ErrorContext(ctx context.Context, msg string, args ...any) {
 	defaultLogger.ErrorContext(ctx, msg, args...)
 }

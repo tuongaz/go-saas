@@ -22,6 +22,10 @@ type OnTerminateEvent struct {
 	App *App
 }
 
+type OnDatabaseBootstrap struct {
+	App *App
+}
+
 func (a *App) OnBeforeBootstrap() *hooks.Hook[*OnBeforeBootstrapEvent] {
 	return a.onBeforeBootstrap
 }
@@ -36,4 +40,8 @@ func (a *App) OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent] {
 
 func (a *App) OnTerminate() *hooks.Hook[*OnTerminateEvent] {
 	return a.onTerminate
+}
+
+func (a *App) OnDatabaseBootstrap() *hooks.Hook[*OnDatabaseBootstrap] {
+	return a.onDatabaseBootstrap
 }

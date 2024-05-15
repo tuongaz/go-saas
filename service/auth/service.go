@@ -148,14 +148,10 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 }
 
 func (s *Service) bootstrap() error {
-	authStore, authStoreCloser := store.MustNew(s.app.Config())
-	s.app.OnTerminate().Add(func(ctx context.Context, e *app.OnTerminateEvent) error {
-		if authStoreCloser != nil {
-			authStoreCloser()
-		}
-
-		return nil
-	})
+	authStore, err := store.New(s.app.Store().DB())
+	if err != nil {
+		return fmt.Errorf("new auth store: %w", err)
+	}
 	s.store = authStore
 
 	s.app.OnBeforeServe().Add(func(ctx context.Context, e *app.OnBeforeServeEvent) error {

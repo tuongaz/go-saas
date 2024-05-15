@@ -11,11 +11,14 @@ import (
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	"github.com/tuongaz/go-saas/pkg/log"
 	"github.com/tuongaz/go-saas/server"
+	"github.com/tuongaz/go-saas/store"
 )
 
 var _ Interface = (*App)(nil)
 
 type Interface interface {
+	Store() *store.Store
+
 	Config() config.Interface
 
 	// OnBeforeBootstrap returns the hook that is triggered before the app is bootstrapped.
@@ -29,14 +32,19 @@ type Interface interface {
 
 	// OnBeforeServe returns the hook that is triggered before the app starts serving.
 	OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent]
+
+	// OnDatabaseBootstrap returns the hook that is triggered when the database is bootstrapped.
+	OnDatabaseBootstrap() *hooks.Hook[*OnDatabaseBootstrap]
 }
 
 type App struct {
-	cfg               config.Interface
-	onBeforeBootstrap *hooks.Hook[*OnBeforeBootstrapEvent]
-	onAfterBootstrap  *hooks.Hook[*OnAfterBootstrapEvent]
-	onBeforeServe     *hooks.Hook[*OnBeforeServeEvent]
-	onTerminate       *hooks.Hook[*OnTerminateEvent]
+	cfg                 config.Interface
+	onBeforeBootstrap   *hooks.Hook[*OnBeforeBootstrapEvent]
+	onAfterBootstrap    *hooks.Hook[*OnAfterBootstrapEvent]
+	onBeforeServe       *hooks.Hook[*OnBeforeServeEvent]
+	onTerminate         *hooks.Hook[*OnTerminateEvent]
+	onDatabaseBootstrap *hooks.Hook[*OnDatabaseBootstrap]
+	store               *store.Store
 }
 
 func New() (*App, error) {
@@ -46,12 +54,17 @@ func New() (*App, error) {
 	}
 
 	return &App{
-		cfg:               cfg,
-		onBeforeBootstrap: &hooks.Hook[*OnBeforeBootstrapEvent]{},
-		onAfterBootstrap:  &hooks.Hook[*OnAfterBootstrapEvent]{},
-		onBeforeServe:     &hooks.Hook[*OnBeforeServeEvent]{},
-		onTerminate:       &hooks.Hook[*OnTerminateEvent]{},
+		cfg:                 cfg,
+		onBeforeBootstrap:   &hooks.Hook[*OnBeforeBootstrapEvent]{},
+		onAfterBootstrap:    &hooks.Hook[*OnAfterBootstrapEvent]{},
+		onBeforeServe:       &hooks.Hook[*OnBeforeServeEvent]{},
+		onTerminate:         &hooks.Hook[*OnTerminateEvent]{},
+		onDatabaseBootstrap: &hooks.Hook[*OnDatabaseBootstrap]{},
 	}, nil
+}
+
+func (a *App) Store() *store.Store {
+	return a.store
 }
 
 func (a *App) Config() config.Interface {
@@ -116,6 +129,27 @@ func (a *App) bootstrap(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("before bootstrap: %w", err)
 	}
+
+	log.Info("bootstrapping database")
+	st, err := store.New(a.Config())
+	if err != nil {
+		return fmt.Errorf("new store: %w", err)
+	}
+	a.store = st
+
+	if err := a.OnDatabaseBootstrap().Trigger(ctx, &OnDatabaseBootstrap{
+		App: a,
+	}); err != nil {
+		return fmt.Errorf("database bootstrap: %w", err)
+	}
+
+	a.OnTerminate().Add(func(ctx context.Context, e *OnTerminateEvent) error {
+		if err := a.store.Close(); err != nil {
+			log.ErrorContext(ctx, "failed to close store", err)
+		}
+
+		return nil
+	})
 
 	if err := a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{
 		App: a,

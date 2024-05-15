@@ -5,10 +5,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/tuongaz/go-saas/config"
+	"github.com/jmoiron/sqlx"
 	"github.com/tuongaz/go-saas/model"
-	"github.com/tuongaz/go-saas/pkg/log"
-	"github.com/tuongaz/go-saas/service/auth/store/persistence"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence/postgres"
 )
 
@@ -37,41 +35,14 @@ type Interface interface {
 	GetAccountRoles(ctx context.Context, accountID string) ([]*model.AccountRole, error)
 }
 
-func NewFromDB(db persistence.Interface) *Impl {
+func New(db *sqlx.DB) (*Impl, error) {
+	postgresDB := postgres.NewFromDB(db)
+
+	if _, err := db.Exec(postgresSchema); err != nil {
+		return nil, fmt.Errorf("failed to create schema: %w", err)
+	}
+
 	return &Impl{
-		db: db,
-	}
-}
-
-func MustNew(cfg config.Interface) (*Impl, func()) {
-	db, closer, err := postgres.New("host=localhost port=5432 user=postgres password=password sslmode=disable")
-	if err != nil {
-		log.Default().Error("failed to init postgres db", log.ErrorAttr(err))
-		panic(err)
-	}
-
-	dbname := "gosaas"
-
-	var exists bool
-	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = '%s')", dbname)
-	err = db.Connection().Get(&exists, query)
-	if err != nil {
-		panic(err)
-	}
-
-	if !exists {
-		_, err := db.Connection().Exec(fmt.Sprintf("CREATE DATABASE %s", dbname))
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("Database created.")
-	} else {
-		fmt.Println("Database already exists.")
-	}
-
-	if _, err := db.Connection().Exec(postgresSchema); err != nil {
-		panic(err)
-	}
-
-	return NewFromDB(db), closer
+		db: postgresDB,
+	}, nil
 }
