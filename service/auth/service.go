@@ -45,17 +45,39 @@ type Config struct {
 	Providers               []OAuth2ProviderConfig
 }
 
-func Register(appInstance app.Interface, cfg Config) *Service {
-	if cfg.JWTTokenLifetimeMinutes == 0 {
-		cfg.JWTTokenLifetimeMinutes = 30
+func WithJWTTokenLifetimeMinutes(minutes int) func(*Config) {
+	return func(cfg *Config) {
+		cfg.JWTTokenLifetimeMinutes = minutes
+	}
+}
+
+func WithJWTSigningSecret(secret string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.JWTSigningSecret = secret
+	}
+}
+
+func WithJWTIssuer(issuer string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.JWTIssuer = issuer
+	}
+}
+
+func WithOauth2Provider(providers ...OAuth2ProviderConfig) func(*Config) {
+	return func(cfg *Config) {
+		cfg.Providers = append(cfg.Providers, providers...)
+	}
+}
+
+func Register(appInstance app.Interface, opts ...func(*Config)) *Service {
+	cfg := &Config{
+		JWTTokenLifetimeMinutes: 30,
+		JWTSigningSecret:        "signing-secret-please-change-me",
+		JWTIssuer:               "go-saas-issuer",
 	}
 
-	if cfg.JWTSigningSecret == "" {
-		cfg.JWTSigningSecret = "signing-secret-please-change-me"
-	}
-
-	if cfg.JWTIssuer == "" {
-		cfg.JWTIssuer = "go-saas-issuer"
+	for _, opt := range opts {
+		opt(cfg)
 	}
 
 	providers := make(map[string]OAuth2ProviderConfig)
