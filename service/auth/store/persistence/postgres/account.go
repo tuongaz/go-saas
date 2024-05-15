@@ -1,4 +1,4 @@
-package sqlite
+package postgres
 
 import (
 	"context"
@@ -14,7 +14,7 @@ func (s *SQL) GetAccount(ctx context.Context, accountID string) (*persistence.Ac
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM account WHERE id = ?",
+		"SELECT * FROM account WHERE id = $1",
 		accountID,
 	)
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *SQL) GetAccountRoles(ctx context.Context, accountID string) ([]*persist
 	err := s.selectContext(
 		ctx,
 		&rows,
-		"SELECT * FROM account_role WHERE account_id = ?",
+		"SELECT * FROM account_role WHERE account_id = $1",
 		accountID,
 	)
 	if err != nil {
@@ -44,7 +44,7 @@ func (s *SQL) GetAccountRoleByID(ctx context.Context, accountRoleID string) (*pe
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM account_role WHERE id = ?",
+		"SELECT * FROM account_role WHERE id = $1",
 		accountRoleID,
 	)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *SQL) GetAccountRole(ctx context.Context, organisationID, accountID stri
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM account_role WHERE organisation_id = ? AND account_id = ?",
+		"SELECT * FROM account_role WHERE organisation_id = $1 AND account_id = $2",
 		organisationID,
 		accountID,
 	)
@@ -75,7 +75,7 @@ func (s *SQL) GetOrganisationByID(ctx context.Context, id string) (*persistence.
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM organisation WHERE id = ?",
+		"SELECT * FROM organisation WHERE id = $1",
 		id,
 	)
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *SQL) GetDefaultOwnerAccountByProvider(ctx context.Context, provider str
 	err := s.getContext(
 		ctx,
 		&accountRow,
-		"SELECT * FROM account WHERE id = (SELECT account_id FROM auth_provider WHERE provider = ? AND provider_user_id = ?)",
+		"SELECT * FROM account WHERE id = (SELECT account_id FROM auth_provider WHERE provider = $1 AND provider_user_id = $2)",
 		provider,
 		providerUserID,
 	)
@@ -102,7 +102,7 @@ func (s *SQL) GetDefaultOwnerAccountByProvider(ctx context.Context, provider str
 	err = s.getContext(
 		ctx,
 		&organisationRow,
-		"SELECT * FROM organisation WHERE id = (SELECT organisation_id FROM account_role WHERE account_id = ? AND role = ?)",
+		"SELECT * FROM organisation WHERE id = (SELECT organisation_id FROM account_role WHERE account_id = $1 AND role = $2)",
 		accountRow.ID,
 		"OWNER",
 	)

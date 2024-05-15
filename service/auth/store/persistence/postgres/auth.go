@@ -1,4 +1,4 @@
-package sqlite
+package postgres
 
 import (
 	"context"
@@ -45,7 +45,7 @@ func (s *SQL) GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID str
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM auth_token WHERE account_role_id = ?",
+		"SELECT * FROM auth_token WHERE account_role_id = $1",
 		accountRoleID,
 	)
 	if err != nil {
@@ -60,7 +60,7 @@ func (s *SQL) GetUserByEmail(ctx context.Context, email string) (*persistence.Us
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM auth_user WHERE email = ?",
+		"SELECT * FROM auth_user WHERE email = $1",
 		email,
 	)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *SQL) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken strin
 	err := s.getContext(
 		ctx,
 		&row,
-		"SELECT * FROM auth_token WHERE refresh_token = ?",
+		"SELECT * FROM auth_token WHERE refresh_token = $1",
 		refreshToken,
 	)
 	if err != nil {

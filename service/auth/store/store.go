@@ -3,16 +3,17 @@ package store
 import (
 	"context"
 	_ "embed"
+	"fmt"
 
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/log"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence"
-	"github.com/tuongaz/go-saas/service/auth/store/persistence/sqlite"
+	"github.com/tuongaz/go-saas/service/auth/store/persistence/postgres"
 )
 
-//go:embed persistence/sqlite/sqlite.sql
-var sqliteSchema string
+//go:embed persistence/postgres/postgres.sql
+var postgresSchema string
 
 var _ Interface = (*Impl)(nil)
 
@@ -43,39 +44,34 @@ func NewFromDB(db persistence.Interface) *Impl {
 }
 
 func MustNew(cfg config.Interface) (*Impl, func()) {
-	log.Default().Info("auth: using sqlite db")
-	db, closer, err := sqlite.New(cfg.GetSQLiteDatasource())
+	db, closer, err := postgres.New("host=localhost port=5432 user=postgres password=password sslmode=disable")
 	if err != nil {
-		log.Default().Error("failed to init sqlite db", log.ErrorAttr(err))
+		log.Default().Error("failed to init postgres db", log.ErrorAttr(err))
 		panic(err)
 	}
 
-	if !db.DBExists() {
-		log.Default().Info("auth: initializing sqlite db schema")
-		_, err = db.Conn().Exec(sqliteSchema)
-		if err != nil {
-			log.Default().Error("auth: failed to init sqlite db schema", log.ErrorAttr(err))
-			panic(err)
-		}
+	dbname := "gosaas"
+
+	var exists bool
+	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = '%s')", dbname)
+	err = db.Connection().Get(&exists, query)
+	if err != nil {
+		panic(err)
 	}
 
-	// TODO
-	//if cfg.PostgresDataSource != "" {
-	//	log.Default().Info("using postgres db")
-	//	db, closer, err := postgres.New(cfg.PostgresDataSource)
-	//	if err != nil {
-	//		log.Default().Error("failed to init postgres db", log.ErrorAttr(err))
-	//		panic(err)
-	//	}
-	//	return db, closer
-	//}
+	if !exists {
+		_, err := db.Connection().Exec(fmt.Sprintf("CREATE DATABASE %s", dbname))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Database created.")
+	} else {
+		fmt.Println("Database already exists.")
+	}
 
-	//log.Default().Info("using sqlite db")
-	//db, closer, err := sqlite.New(cfg.SQLiteDatasource)
-	//if err != nil {
-	//	log.Default().Error("failed to init sqlite db", log.ErrorAttr(err))
-	//	panic(err)
-	//}
+	if _, err := db.Connection().Exec(postgresSchema); err != nil {
+		panic(err)
+	}
 
 	return NewFromDB(db), closer
 }

@@ -19,7 +19,6 @@ type Interface interface {
 	GetEncryptionKey() string
 	GetServerPort() string
 
-	GetSQLiteDatasource() string
 	GetPostgresDataSource() string
 
 	GetCORSAllowedOrigins() []string
@@ -36,7 +35,6 @@ type Config struct {
 	EncryptionKey string `mapstructure:"GOS_ENCRYPTION_KEY"`
 
 	// Datasource, credentials
-	SqliteDatasource   string `mapstructure:"GOS_SQLITE_DATASOURCE"`
 	PostgresDataSource string `mapstructure:"GOS_POSTGRES_DATASOURCE"`
 
 	// CORS
@@ -60,7 +58,6 @@ func New() (*Config, error) {
 	SetDefault("GOS_SERVER_PORT", "8080")
 	SetDefault("GOS_ENCRYPTION_KEY", defaultEncryptionKey)
 
-	SetDefault("GOS_SQLITE_DATASOURCE", "file:autopusdb?cache=shared&_fk=1")
 	SetDefault("GOS_POSTGRES_DATASOURCE", "")
 
 	// CORS
@@ -96,10 +93,6 @@ func (c *Config) GetServerPort() string {
 
 func (c *Config) GetEncryptionKey() string {
 	return c.EncryptionKey
-}
-
-func (c *Config) GetSQLiteDatasource() string {
-	return c.SqliteDatasource
 }
 
 func (c *Config) GetPostgresDataSource() string {
