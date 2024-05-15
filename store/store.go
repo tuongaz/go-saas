@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tuongaz/go-saas/config"
@@ -13,13 +14,20 @@ type Store struct {
 }
 
 func New(cfg config.Interface) (*Store, error) {
-	db, err := sqlx.Connect("postgres", cfg.GetPostgresDataSource())
+	datasource := cfg.GetPostgresDataSource()
+	dbName := extractDBName(datasource)
+	if dbName == "" {
+		dbName = "gosaas"
+		datasource = fmt.Sprintf("%s dbname=gosaas", datasource)
+	}
+
+	db, err := sqlx.Connect("postgres", datasource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 
 	var exists bool
-	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = '%s')", cfg.GetDBName())
+	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = '%s')", dbName)
 	err = db.Get(&exists, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check database exists: %w", err)
@@ -62,4 +70,14 @@ func NewDBError(err error) *DBError {
 
 func (e *DBError) Error() string {
 	return e.Err.Error()
+}
+
+func extractDBName(connStr string) string {
+	parts := strings.Split(connStr, " ")
+	for _, part := range parts {
+		if strings.HasPrefix(part, "dbname=") {
+			return strings.TrimPrefix(part, "dbname=")
+		}
+	}
+	return ""
 }

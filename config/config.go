@@ -19,7 +19,6 @@ type Interface interface {
 	GetEncryptionKey() string
 	GetServerPort() string
 
-	GetDBName() string
 	GetPostgresDataSource() string
 
 	GetCORSAllowedOrigins() []string
@@ -37,7 +36,6 @@ type Config struct {
 
 	// Datasource, credentials
 	PostgresDataSource string `mapstructure:"GOS_POSTGRES_DATASOURCE"`
-	DBName             string `mapstructure:"GOS_DB_NAME"`
 
 	// CORS
 	CORSAllowedOrigins   []string `mapstructure:"GOS_CORS_ALLOWED_ORIGINS"`
@@ -92,10 +90,6 @@ func (c *Config) GetEnvironment() string {
 
 func (c *Config) GetServerPort() string {
 	return c.ServerPort
-}
-
-func (c *Config) GetDBName() string {
-	return c.DBName
 }
 
 func (c *Config) GetEncryptionKey() string {
