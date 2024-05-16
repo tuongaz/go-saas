@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/service/auth/store"
@@ -20,6 +21,17 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
+func splitName(name string) (string, string) {
+	var firstName, lastName string
+	if name != "" {
+		names := strings.Split(name, " ")
+		firstName = names[0]
+		lastName = names[len(names)-1]
+	}
+
+	return firstName, lastName
+}
+
 func (s *Service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
@@ -29,11 +41,15 @@ func (s *Service) signupUsernamePasswordAccount(
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
+	firstName, lastName := splitName(input.Name)
+
 	ownerAcc, org, _, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
-		Email:    input.Email,
-		Name:     input.Name,
-		Provider: model.AuthProviderUsernamePassword,
-		Password: hashedPw,
+		Email:     input.Email,
+		Name:      input.Name,
+		FirstName: firstName,
+		LastName:  lastName,
+		Provider:  model.AuthProviderUsernamePassword,
+		Password:  hashedPw,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create owner account: %w", err)
