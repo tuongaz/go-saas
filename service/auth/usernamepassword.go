@@ -22,17 +22,6 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
-func splitName(name string) (string, string) {
-	var firstName, lastName string
-	if name != "" {
-		names := strings.Split(name, " ")
-		firstName = names[0]
-		lastName = names[len(names)-1]
-	}
-
-	return firstName, lastName
-}
-
 func (s *Service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
@@ -129,4 +118,15 @@ func (s *Service) isPasswordMatched(password, hashedPassword string) bool {
 	}
 
 	return true
+}
+
+func splitName(name string) (string, string) {
+	var firstName, lastName string
+	if name != "" {
+		names := strings.Split(name, " ")
+		firstName = names[0]
+		lastName = names[len(names)-1]
+	}
+
+	return firstName, lastName
 }
