@@ -13,8 +13,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	goauth "golang.org/x/oauth2"
-
-	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 const (
@@ -26,7 +24,7 @@ const (
 
 type Provider interface {
 	GetUser(ctx context.Context, token *goauth.Token) (*User, error)
-	LoginHandler(w http.ResponseWriter, r *http.Request, state types.M)
+	LoginHandler(w http.ResponseWriter, r *http.Request, state map[string]any)
 	CallbackHandler(w http.ResponseWriter, r *http.Request) (*AuthDetail, error)
 }
 
@@ -40,7 +38,7 @@ func New(cfg *oauth2.Config) *OAuth2 {
 	}
 }
 
-func (o *OAuth2) LoginHandler(w http.ResponseWriter, r *http.Request, state types.M) {
+func (o *OAuth2) LoginHandler(w http.ResponseWriter, r *http.Request, state map[string]any) {
 	nonce := randomString(16)
 	verifier := generateCodeVerifier()
 	challenge := generateCodeChallenge(verifier)
@@ -151,8 +149,8 @@ func (o *OAuth2) CallbackHandler(w http.ResponseWriter, r *http.Request) (*AuthD
 }
 
 type State struct {
-	Code  string  `json:"code"`
-	State types.M `json:"state"`
+	Code  string         `json:"code"`
+	State map[string]any `json:"state"`
 }
 
 func (s State) Encode() string {

@@ -7,21 +7,19 @@ import (
 	"io"
 	"net/http"
 
+	oauth22 "github.com/tuongaz/go-saas/pkg/oauth2"
 	goauth "golang.org/x/oauth2"
-
-	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
-	"github.com/tuongaz/go-saas/pkg/types"
 )
 
 const Name = "google"
 
 type Google struct {
-	oauth2 *oauth2.OAuth2
+	oauth2 *oauth22.OAuth2
 }
 
-func New(cfg oauth2.Config) *Google {
+func New(cfg oauth22.Config) *Google {
 	return &Google{
-		oauth2: oauth2.New(&goauth.Config{
+		oauth2: oauth22.New(&goauth.Config{
 			ClientID:     cfg.ClientID,
 			ClientSecret: cfg.ClientSecret,
 			RedirectURL:  cfg.RedirectURL,
@@ -35,15 +33,15 @@ func New(cfg oauth2.Config) *Google {
 	}
 }
 
-func (g *Google) LoginHandler(w http.ResponseWriter, r *http.Request, state types.M) {
+func (g *Google) LoginHandler(w http.ResponseWriter, r *http.Request, state map[string]any) {
 	g.oauth2.LoginHandler(w, r, state)
 }
 
-func (g *Google) CallbackHandler(w http.ResponseWriter, r *http.Request) (*oauth2.AuthDetail, error) {
+func (g *Google) CallbackHandler(w http.ResponseWriter, r *http.Request) (*oauth22.AuthDetail, error) {
 	return g.oauth2.CallbackHandler(w, r)
 }
 
-func (g *Google) GetUser(ctx context.Context, token *goauth.Token) (*oauth2.User, error) {
+func (g *Google) GetUser(ctx context.Context, token *goauth.Token) (*oauth22.User, error) {
 	client := goauth.NewClient(ctx, goauth.StaticTokenSource(token))
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -56,12 +54,12 @@ func (g *Google) GetUser(ctx context.Context, token *goauth.Token) (*oauth2.User
 		return nil, err
 	}
 
-	var data types.M
+	var data map[string]any
 	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, err
 	}
 
-	return &oauth2.User{
+	return &oauth22.User{
 		UserID:       fmt.Sprint(data["id"]),
 		Name:         fmt.Sprint(data["name"]),
 		Email:        fmt.Sprint(data["email"]),

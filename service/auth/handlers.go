@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tuongaz/go-saas/pkg/auth/oauth2/providers"
+	"github.com/tuongaz/go-saas/pkg/oauth2"
+	"github.com/tuongaz/go-saas/pkg/oauth2/providers"
 
-	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 

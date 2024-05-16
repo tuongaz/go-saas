@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
 	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/pkg/oauth2"
 	model2 "github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/store"
 	store2 "github.com/tuongaz/go-saas/store"
