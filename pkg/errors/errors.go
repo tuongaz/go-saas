@@ -3,7 +3,15 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
+
+type APIError struct {
+	Code    int            `json:"code"`
+	Message string         `json:"message"`
+	Data    map[string]any `json:"data"`
+	error   error
+}
 
 func New(msg string, params ...any) error {
 	return fmt.Errorf(msg, params...)
@@ -50,16 +58,21 @@ func IsNotFound(err error) bool {
 	return errors.As(err, &e)
 }
 
-func NewValidationError(err error) *ValidationError {
-	return &ValidationError{err}
+func NewValidationError(message string, data map[string]any, err error) *ValidationError {
+	return &ValidationError{&APIError{
+		Code:    http.StatusBadRequest,
+		Message: message,
+		Data:    data,
+		error:   err,
+	}}
 }
 
 type ValidationError struct {
-	err error
+	*APIError
 }
 
 func (v ValidationError) Error() string {
-	return v.err.Error()
+	return v.error.Error()
 }
 
 func IsValidation(err error) bool {

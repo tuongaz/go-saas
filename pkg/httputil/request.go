@@ -32,7 +32,7 @@ func ParseRequestBody[T any](r *http.Request) (*T, error) {
 	}
 
 	if err := json.Unmarshal(body, target); err != nil {
-		return nil, errors.NewValidationError(fmt.Errorf("unmarshal request body: %w", err))
+		return nil, errors.NewValidationError("invalid data structure", nil, fmt.Errorf("unmarshal request body: %w", err))
 	}
 
 	return target, nil
