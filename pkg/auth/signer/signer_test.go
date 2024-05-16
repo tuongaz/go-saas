@@ -6,8 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/service/auth/model"
 )
 
 func TestSignSuccess(t *testing.T) {

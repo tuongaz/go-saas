@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	errors2 "github.com/tuongaz/go-saas/pkg/errors"
+	errors2 "github.com/tuongaz/go-saas/store"
 )
 
 func (s *SQL) namedExecContext(

@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/timer"
 	"github.com/tuongaz/go-saas/pkg/uid"
+	model2 "github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence/postgres"
 )
@@ -19,25 +19,25 @@ var postgresSchema string
 var _ Interface = (*Impl)(nil)
 
 type Interface interface {
-	CreateAuthToken(ctx context.Context, row CreateAuthTokenInput) (*model.AuthToken, error)
-	GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model.AuthToken, error)
-	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AuthToken, error)
+	CreateAuthToken(ctx context.Context, row CreateAuthTokenInput) (*model2.AuthToken, error)
+	GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model2.AuthToken, error)
+	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model2.AuthToken, error)
 	UpdateAuthToken(ctx context.Context, id string, row UpdateAuthTokenInput) error
 	CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
-		*model.Account,
-		*model.Organisation,
-		*model.AuthProvider,
-		*model.AccountRole,
+		*model2.Account,
+		*model2.Organisation,
+		*model2.AuthProvider,
+		*model2.AccountRole,
 		error,
 	)
-	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*model2.User, error)
 	EmailExists(ctx context.Context, email string) (bool, error)
-	GetAccount(ctx context.Context, accountID string) (*model.Account, error)
-	GetAccountRole(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error)
-	GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, error)
-	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error)
-	GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model.AccountRole, error)
-	GetAccountRoles(ctx context.Context, accountID string) ([]*model.AccountRole, error)
+	GetAccount(ctx context.Context, accountID string) (*model2.Account, error)
+	GetAccountRole(ctx context.Context, organisationID, accountID string) (*model2.AccountRole, error)
+	GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*model2.Account, error)
+	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model2.Organisation, error)
+	GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model2.AccountRole, error)
+	GetAccountRoles(ctx context.Context, accountID string) ([]*model2.AccountRole, error)
 }
 
 func New(db *sqlx.DB) (*Impl, error) {
@@ -56,7 +56,7 @@ type Impl struct {
 	db persistence.Interface
 }
 
-func (i *Impl) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+func (i *Impl) GetUserByEmail(ctx context.Context, email string) (*model2.User, error) {
 	row, err := i.db.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("query user by email: %w", err)
@@ -69,7 +69,7 @@ func (i *Impl) EmailExists(ctx context.Context, email string) (bool, error) {
 	return i.db.EmailExists(ctx, email)
 }
 
-func (i *Impl) CreateAuthToken(ctx context.Context, input CreateAuthTokenInput) (*model.AuthToken, error) {
+func (i *Impl) CreateAuthToken(ctx context.Context, input CreateAuthTokenInput) (*model2.AuthToken, error) {
 	row := persistence.AuthTokenRow{
 		ID:            uid.ID(),
 		AccountRoleID: input.AccountRoleID,
@@ -96,7 +96,7 @@ func (i *Impl) UpdateAuthToken(ctx context.Context, id string, input UpdateAuthT
 	return nil
 }
 
-func (i *Impl) GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model.AuthToken, error) {
+func (i *Impl) GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model2.AuthToken, error) {
 	row, err := i.db.GetAuthTokenByAccountRoleID(ctx, accountRoleID)
 	if err != nil {
 		return nil, fmt.Errorf("query auth token: %w", err)
@@ -105,7 +105,7 @@ func (i *Impl) GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID st
 	return toAuthToken(*row), nil
 }
 
-func (i *Impl) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AuthToken, error) {
+func (i *Impl) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model2.AuthToken, error) {
 	row, err := i.db.GetAuthTokenByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("query auth token by refresh token: %w", err)
@@ -114,8 +114,8 @@ func (i *Impl) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken stri
 	return toAuthToken(*row), nil
 }
 
-func toUser(row persistence.UserRow) *model.User {
-	return &model.User{
+func toUser(row persistence.UserRow) *model2.User {
+	return &model2.User{
 		ID:                                row.ID,
 		Email:                             row.Email,
 		Name:                              row.Name,
@@ -143,14 +143,14 @@ type CreateUserInput struct {
 }
 
 func (i *Impl) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
-	*model.Account,
-	*model.Organisation,
-	*model.AuthProvider,
-	*model.AccountRole,
+	*model2.Account,
+	*model2.Organisation,
+	*model2.AuthProvider,
+	*model2.AccountRole,
 	error,
 ) {
 	var userRow *persistence.UserRow
-	if input.Provider == model.AuthProviderUsernamePassword {
+	if input.Provider == model2.AuthProviderUsernamePassword {
 		found, err := i.db.EmailExists(ctx, input.Email)
 		if err != nil {
 			return nil, nil, nil, nil, fmt.Errorf("get user by email: %w", err)
@@ -224,7 +224,7 @@ func (i *Impl) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountI
 	return toAccount(accountRow), toOrganisation(orgRow), toAuthProvider(authProviderRow), toAccountRole(accRoleRow), nil
 }
 
-func (i *Impl) GetAccount(ctx context.Context, accountID string) (*model.Account, error) {
+func (i *Impl) GetAccount(ctx context.Context, accountID string) (*model2.Account, error) {
 	row, err := i.db.GetAccount(ctx, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("query account: %w", err)
@@ -233,7 +233,7 @@ func (i *Impl) GetAccount(ctx context.Context, accountID string) (*model.Account
 	return toAccount(*row), nil
 }
 
-func (i *Impl) GetAccountRole(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error) {
+func (i *Impl) GetAccountRole(ctx context.Context, organisationID, accountID string) (*model2.AccountRole, error) {
 	row, err := i.db.GetAccountRole(ctx, organisationID, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("query account role: %w", err)
@@ -242,7 +242,7 @@ func (i *Impl) GetAccountRole(ctx context.Context, organisationID, accountID str
 	return toAccountRole(*row), nil
 }
 
-func (i *Impl) GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, error) {
+func (i *Impl) GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*model2.Account, error) {
 	row, err := i.db.GetAccountByAuthProvider(ctx, provider, providerUserID)
 	if err != nil {
 		return nil, fmt.Errorf("query account by provider: %w", err)
@@ -251,7 +251,7 @@ func (i *Impl) GetAccountByAuthProvider(ctx context.Context, provider string, pr
 	return toAccount(*row), nil
 }
 
-func (i *Impl) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error) {
+func (i *Impl) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model2.Organisation, error) {
 	orgRow, err := i.db.GetOrganisationByAccountIDAndRole(ctx, accountID, role)
 	if err != nil {
 		return nil, fmt.Errorf("query default owner account by provider: %w", err)
@@ -260,13 +260,13 @@ func (i *Impl) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID,
 	return toOrganisation(*orgRow), nil
 }
 
-func (i *Impl) GetAccountRoles(ctx context.Context, accountID string) ([]*model.AccountRole, error) {
+func (i *Impl) GetAccountRoles(ctx context.Context, accountID string) ([]*model2.AccountRole, error) {
 	rows, err := i.db.GetAccountRoles(ctx, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("query account roles: %w", err)
 	}
 
-	accountRoles := make([]*model.AccountRole, 0, len(rows))
+	accountRoles := make([]*model2.AccountRole, 0, len(rows))
 	for _, row := range rows {
 		accountRoles = append(accountRoles, toAccountRole(*row))
 	}
@@ -274,7 +274,7 @@ func (i *Impl) GetAccountRoles(ctx context.Context, accountID string) ([]*model.
 	return accountRoles, nil
 }
 
-func (i *Impl) GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model.AccountRole, error) {
+func (i *Impl) GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model2.AccountRole, error) {
 	row, err := i.db.GetAccountRoleByID(ctx, accountRoleID)
 	if err != nil {
 		return nil, fmt.Errorf("query account role by id: %w", err)
@@ -294,8 +294,8 @@ type CreateOwnerAccountInput struct {
 	Password       string
 }
 
-func toAccount(row persistence.AccountRow) *model.Account {
-	return &model.Account{
+func toAccount(row persistence.AccountRow) *model2.Account {
+	return &model2.Account{
 		ID:                 row.ID,
 		Name:               row.Name,
 		FirstName:          row.FirstName,
@@ -307,16 +307,16 @@ func toAccount(row persistence.AccountRow) *model.Account {
 	}
 }
 
-func toOrganisation(row persistence.OrganisationRow) *model.Organisation {
-	return &model.Organisation{
+func toOrganisation(row persistence.OrganisationRow) *model2.Organisation {
+	return &model2.Organisation{
 		ID:        row.ID,
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt,
 	}
 }
 
-func toAuthProvider(row persistence.AuthProviderRow) *model.AuthProvider {
-	return &model.AuthProvider{
+func toAuthProvider(row persistence.AuthProviderRow) *model2.AuthProvider {
+	return &model2.AuthProvider{
 		ID:             row.ID,
 		AccountID:      row.AccountID,
 		Provider:       row.Provider,
@@ -329,8 +329,8 @@ func toAuthProvider(row persistence.AuthProviderRow) *model.AuthProvider {
 	}
 }
 
-func toAccountRole(row persistence.AccountRoleRow) *model.AccountRole {
-	return &model.AccountRole{
+func toAccountRole(row persistence.AccountRoleRow) *model2.AccountRole {
+	return &model2.AccountRole{
 		ID:             row.ID,
 		AccountID:      row.AccountID,
 		OrganisationID: row.OrganisationID,
@@ -340,8 +340,8 @@ func toAccountRole(row persistence.AccountRoleRow) *model.AccountRole {
 	}
 }
 
-func toAuthToken(row persistence.AuthTokenRow) *model.AuthToken {
-	return &model.AuthToken{
+func toAuthToken(row persistence.AuthTokenRow) *model2.AuthToken {
+	return &model2.AuthToken{
 		ID:            row.ID,
 		AccountRoleID: row.AccountRoleID,
 		RefreshToken:  row.RefreshToken,

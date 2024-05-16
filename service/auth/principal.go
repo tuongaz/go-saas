@@ -3,8 +3,8 @@ package auth
 import (
 	"context"
 
-	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/service/auth/model"
 )
 
 var (

@@ -5,25 +5,25 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/auth/oauth2"
-	"github.com/tuongaz/go-saas/pkg/errors"
 	"github.com/tuongaz/go-saas/pkg/log"
+	model2 "github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/store"
+	store2 "github.com/tuongaz/go-saas/store"
 )
 
 // oauth2Authenticate creates new account, with new organisation and assign owner role to the account
 func (s *Service) oauth2Authenticate(
 	ctx context.Context,
 	user oauth2.User,
-) (*model.AuthenticatedInfo, error) {
-	var ownerAcc *model.Account
-	var org *model.Organisation
+) (*model2.AuthenticatedInfo, error) {
+	var ownerAcc *model2.Account
+	var org *model2.Organisation
 	var err error
 	var newAccount bool
 
 	ownerAcc, err = s.store.GetAccountByAuthProvider(ctx, user.Provider, user.UserID)
-	if err != nil && !errors.IsNotFoundError(err) {
+	if err != nil && !store2.IsNotFoundError(err) {
 		return nil, fmt.Errorf("get account by auth provider: %w", err)
 	}
 
@@ -35,7 +35,7 @@ func (s *Service) oauth2Authenticate(
 		}
 	}
 
-	org, err = s.store.GetOrganisationByAccountIDAndRole(ctx, ownerAcc.ID, string(model.RoleOwner))
+	org, err = s.store.GetOrganisationByAccountIDAndRole(ctx, ownerAcc.ID, string(model2.RoleOwner))
 	if err != nil {
 		return nil, fmt.Errorf("get default owner account by provider: %w", err)
 	}
@@ -83,7 +83,7 @@ func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oaut
 func (s *Service) oauth2SignupNewAccount(
 	ctx context.Context,
 	user oauth2.User,
-) (*model.Organisation, *model.Account, error) {
+) (*model2.Organisation, *model2.Account, error) {
 	acc, accountOrg, _, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
 		Name:           user.Name,
 		FirstName:      user.FirstName,

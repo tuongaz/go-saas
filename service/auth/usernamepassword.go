@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tuongaz/go-saas/model"
-	"github.com/tuongaz/go-saas/pkg/errors"
 	"github.com/tuongaz/go-saas/pkg/errors/apierror"
+	model2 "github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/store"
+	store2 "github.com/tuongaz/go-saas/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -26,13 +26,13 @@ type LoginInput struct {
 func (s *Service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
-) (*model.AuthenticatedInfo, error) {
+) (*model2.AuthenticatedInfo, error) {
 	found, err := s.store.EmailExists(ctx, input.Email)
 	if err != nil {
 		return nil, fmt.Errorf("check email exists: %w", err)
 	}
 	if found {
-		return nil, apierror.NewValidationError("email already exists", nil, nil)
+		return nil, apierror.NewValidationError("Email already exists", nil, nil)
 	}
 
 	hashedPw, err := s.hashPassword(input.Password)
@@ -47,7 +47,7 @@ func (s *Service) signupUsernamePasswordAccount(
 		Name:      input.Name,
 		FirstName: firstName,
 		LastName:  lastName,
-		Provider:  model.AuthProviderUsernamePassword,
+		Provider:  model2.AuthProviderUsernamePassword,
 		Password:  hashedPw,
 	})
 	if err != nil {
@@ -76,10 +76,10 @@ func (s *Service) signupUsernamePasswordAccount(
 func (s *Service) loginUsernamePasswordAccount(
 	ctx context.Context,
 	input *LoginInput,
-) (*model.AuthenticatedInfo, error) {
+) (*model2.AuthenticatedInfo, error) {
 	user, err := s.store.GetUserByEmail(ctx, input.Email)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if store2.IsNotFoundError(err) {
 			return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
 		}
 
@@ -90,12 +90,12 @@ func (s *Service) loginUsernamePasswordAccount(
 		return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
 	}
 
-	acc, err := s.store.GetAccountByAuthProvider(ctx, model.AuthProviderUsernamePassword, user.ID)
+	acc, err := s.store.GetAccountByAuthProvider(ctx, model2.AuthProviderUsernamePassword, user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("get account by auth provider: %w", err)
 	}
 
-	org, err := s.store.GetOrganisationByAccountIDAndRole(ctx, acc.ID, string(model.RoleOwner))
+	org, err := s.store.GetOrganisationByAccountIDAndRole(ctx, acc.ID, string(model2.RoleOwner))
 	if err != nil {
 		return nil, fmt.Errorf("get default owner account by provider: %w", err)
 	}

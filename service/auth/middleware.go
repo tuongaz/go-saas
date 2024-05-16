@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tuongaz/go-saas/model"
 	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"github.com/tuongaz/go-saas/pkg/httputil"
+	"github.com/tuongaz/go-saas/service/auth/model"
 )
 
 // NewMiddleware creates a new middleware that authenticates the user and sets the principal in the context.
