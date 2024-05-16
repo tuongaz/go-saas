@@ -6,8 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/tuongaz/go-saas/pkg/auth/signer"
+	"github.com/tuongaz/go-saas/service/auth/signer"
 )
 
 func TestMiddlewareWithInvalidToken(t *testing.T) {

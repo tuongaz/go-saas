@@ -9,10 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/tuongaz/go-saas/app"
-	"github.com/tuongaz/go-saas/pkg/auth/signer"
 	"github.com/tuongaz/go-saas/pkg/encrypt"
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	model2 "github.com/tuongaz/go-saas/service/auth/model"
+	"github.com/tuongaz/go-saas/service/auth/signer"
 	"github.com/tuongaz/go-saas/service/auth/store"
 )
 
