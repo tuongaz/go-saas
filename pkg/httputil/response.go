@@ -3,6 +3,7 @@ package httputil
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/tuongaz/go-saas/pkg/errors/apierror"
@@ -76,23 +77,10 @@ func HandleResponse(ctx context.Context, w http.ResponseWriter, out any, err err
 	response := New(w)
 	if err != nil {
 		log.Default().ErrorContext(ctx, "request error", log.ErrorAttr(err))
-		if apierror.IsValidation(err) {
-			response.BadRequest(ctx, err)
-			return
-		}
 
-		if apierror.IsNotFound1(err) {
-			response.NotFound(ctx, err)
-			return
-		}
-
-		if apierror.IsForbidden(err) {
-			response.Forbidden(ctx, err)
-			return
-		}
-
-		if apierror.IsUnauthorized(err) {
-			response.Unauthorized(ctx, err)
+		var unwrappedErr *apierror.APIError
+		if errors.As(err, &unwrappedErr) {
+			response.JSON(unwrappedErr, unwrappedErr.Code)
 			return
 		}
 

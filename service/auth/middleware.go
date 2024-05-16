@@ -13,20 +13,22 @@ import (
 func (s *Service) NewMiddleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+
 			bearer := r.Header.Get("Authorization")
 			claims, err := s.signer.ParseCustomClaims(strings.Replace(bearer, "Bearer ", "", 1))
 			if err != nil {
-				httputil.HandleResponse(r.Context(), w, nil, apierror.NewUnauthorizedErr(err))
+				httputil.HandleResponse(ctx, w, nil, apierror.NewUnauthorizedErr("invalid credentials", err))
 				return
 			}
 
-			accRole, err := s.GetAccountRole(r.Context(), claims.Organisation, claims.Subject)
+			accRole, err := s.GetAccountRole(ctx, claims.Organisation, claims.Subject)
 			if err != nil {
-				httputil.HandleResponse(r.Context(), w, nil, apierror.NewUnauthorizedErr(err))
+				httputil.HandleResponse(ctx, w, nil, apierror.NewUnauthorizedErr("invalid credentials", err))
 				return
 			}
 
-			ctx := PrincipalToCtx(r.Context(), model.Principal{
+			ctx = PrincipalToCtx(ctx, model.Principal{
 				OrganisationID: claims.Organisation,
 				AccountID:      claims.Subject,
 				AccountType:    claims.AccountType,

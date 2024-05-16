@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/errors"
 	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"github.com/tuongaz/go-saas/service/auth/store"
 	"golang.org/x/crypto/bcrypt"
@@ -78,11 +79,15 @@ func (s *Service) loginUsernamePasswordAccount(
 ) (*model.AuthenticatedInfo, error) {
 	user, err := s.store.GetUserByEmail(ctx, input.Email)
 	if err != nil {
+		if errors.IsNotFoundError(err) {
+			return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
+		}
+
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 
 	if !s.isPasswordMatched(input.Password, user.Password) {
-		return nil, fmt.Errorf("invalid password")
+		return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
 	}
 
 	acc, err := s.store.GetAccountByAuthProvider(ctx, model.AuthProviderUsernamePassword, user.ID)
