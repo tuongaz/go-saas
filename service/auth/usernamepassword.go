@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tuongaz/go-saas/pkg/errors/apierror"
+	"github.com/tuongaz/go-saas/pkg/apierror"
 	model2 "github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/store"
 	store2 "github.com/tuongaz/go-saas/store"

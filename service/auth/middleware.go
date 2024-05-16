@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tuongaz/go-saas/pkg/errors/apierror"
+	"github.com/tuongaz/go-saas/pkg/apierror"
 	"github.com/tuongaz/go-saas/pkg/httputil"
 	"github.com/tuongaz/go-saas/service/auth/model"
 )

@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/tuongaz/go-saas/pkg/errors/apierror"
+	"github.com/tuongaz/go-saas/pkg/apierror"
 	"github.com/tuongaz/go-saas/pkg/log"
 )
 
