@@ -11,11 +11,38 @@ import (
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
+func (s *Service) setupAPI(router *chi.Mux) {
+	authMiddleware := s.NewMiddleware()
+
+	router.Route("/auth", func(r chi.Router) {
+		// public routes
+		r.Get("/oauth2-providers", s.Oauth2EnabledProvidersHandler)
+		r.Post("/signup", s.SignupHandler)
+		r.Post("/login", s.LoginHandler)
+		r.Get("/{provider}", s.Oauth2AuthenticateHandler)
+		r.Get("/{provider}/callback", s.Oauth2LoginSignupCallbackHandler)
+
+		// private routes
+		r.With(authMiddleware).Get("/me", s.MeHandler)
+	})
+}
+
 // MeHandler returns the account information of the current authenticated user.
 func (s *Service) MeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	out, err := s.store.GetAccount(ctx, AccountID(ctx))
 	httputil.HandleResponse(ctx, w, out, err)
+}
+
+func (s *Service) Oauth2EnabledProvidersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	enabledProviders := make([]string, 0, len(s.providers))
+	for provider := range s.providers {
+		enabledProviders = append(enabledProviders, provider)
+	}
+	httputil.HandleResponse(ctx, w, map[string]any{
+		"providers": enabledProviders,
+	}, nil)
 }
 
 // Oauth2AuthenticateHandler redirects the user to the OAuth2 provider's login page.

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/tuongaz/go-saas/app"
@@ -178,18 +177,7 @@ func (s *Service) bootstrap() error {
 
 	s.app.OnBeforeServe().Add(func(ctx context.Context, e *app.OnBeforeServeEvent) error {
 		rootRouter := e.Server.Router()
-		authMiddleware := s.NewMiddleware()
-
-		rootRouter.Route("/auth", func(r chi.Router) {
-			// public routes
-			r.Post("/signup", s.SignupHandler)
-			r.Post("/login", s.LoginHandler)
-			r.Get("/{provider}", s.Oauth2AuthenticateHandler)
-			r.Get("/{provider}/callback", s.Oauth2LoginSignupCallbackHandler)
-
-			// private routes
-			r.With(authMiddleware).Get("/me", s.MeHandler)
-		})
+		s.setupAPI(rootRouter)
 
 		return nil
 	})
