@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tuongaz/go-saas/model"
+	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"github.com/tuongaz/go-saas/service/auth/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -36,6 +37,14 @@ func (s *Service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
 ) (*model.AuthenticatedInfo, error) {
+	found, err := s.store.EmailExists(ctx, input.Email)
+	if err != nil {
+		return nil, fmt.Errorf("check email exists: %w", err)
+	}
+	if found {
+		return nil, apierror.NewValidationError("email already exists", nil, nil)
+	}
+
 	hashedPw, err := s.hashPassword(input.Password)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
@@ -87,7 +96,12 @@ func (s *Service) loginUsernamePasswordAccount(
 		return nil, fmt.Errorf("invalid password")
 	}
 
-	acc, org, err := s.store.GetDefaultOwnerAccountByProvider(ctx, model.AuthProviderUsernamePassword, user.ID)
+	acc, err := s.store.GetAccountByAuthProvider(ctx, model.AuthProviderUsernamePassword, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get account by auth provider: %w", err)
+	}
+
+	org, err := s.store.GetOrganisationByAccountIDAndRole(ctx, acc.ID, string(model.RoleOwner))
 	if err != nil {
 		return nil, fmt.Errorf("get default owner account by provider: %w", err)
 	}

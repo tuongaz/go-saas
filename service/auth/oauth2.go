@@ -22,11 +22,9 @@ func (s *Service) oauth2Authenticate(
 	var err error
 	var newAccount bool
 
-	ownerAcc, org, err = s.store.GetDefaultOwnerAccountByProvider(ctx, user.Provider, user.UserID)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, fmt.Errorf("get account by provider: %w", err)
-		}
+	ownerAcc, err = s.store.GetAccountByAuthProvider(ctx, user.Provider, user.UserID)
+	if err != nil && !errors.IsNotFoundError(err) {
+		return nil, fmt.Errorf("get account by auth provider: %w", err)
 	}
 
 	if ownerAcc == nil { // new user
@@ -35,6 +33,11 @@ func (s *Service) oauth2Authenticate(
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	org, err = s.store.GetOrganisationByAccountIDAndRole(ctx, ownerAcc.ID, string(model.RoleOwner))
+	if err != nil {
+		return nil, fmt.Errorf("get default owner account by provider: %w", err)
 	}
 
 	if newAccount {

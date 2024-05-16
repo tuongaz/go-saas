@@ -9,8 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 )
 
 type mockResponseWriter struct {
@@ -63,7 +62,7 @@ func TestBadRequest(t *testing.T) {
 	mrw := newMockResponseWriter()
 	resp := New(mrw)
 
-	err := errors.New("invalid input")
+	err := apierror.New("invalid input")
 	resp.BadRequest(context.Background(), err)
 
 	assert.Equal(t, http.StatusBadRequest, mrw.statusCode)
@@ -75,7 +74,7 @@ func TestNotFound(t *testing.T) {
 	mrw := newMockResponseWriter()
 	resp := New(mrw)
 
-	err := errors.New("not found error")
+	err := apierror.New("not found error")
 	resp.NotFound(context.Background(), err)
 
 	assert.Equal(t, http.StatusNotFound, mrw.statusCode)
@@ -87,7 +86,7 @@ func TestError(t *testing.T) {
 	mrw := newMockResponseWriter()
 	resp := New(mrw)
 
-	err := errors.New("internal error")
+	err := apierror.New("internal error")
 	resp.Error(context.Background(), err)
 
 	assert.Equal(t, http.StatusInternalServerError, mrw.statusCode)
@@ -103,7 +102,7 @@ func TestHandleResponse(t *testing.T) {
 		expectedBody   string
 	}{
 		{"No Error", nil, http.StatusOK, "{}\n"},
-		{"Validation Error", errors.NewValidationError(errors.New("validation error")), http.StatusBadRequest, "{\"error\":\"validation error\"}\n"},
+		{"Validation Error", apierror.NewValidationError(apierror.New("validation error")), http.StatusBadRequest, "{\"error\":\"validation error\"}\n"},
 	}
 
 	for _, tt := range tests {

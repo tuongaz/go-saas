@@ -7,7 +7,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tuongaz/go-saas/model"
-	"github.com/tuongaz/go-saas/pkg/errors"
 	"github.com/tuongaz/go-saas/pkg/timer"
 	"github.com/tuongaz/go-saas/pkg/uid"
 	"github.com/tuongaz/go-saas/service/auth/store/persistence"
@@ -32,9 +31,11 @@ type Interface interface {
 		error,
 	)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	EmailExists(ctx context.Context, email string) (bool, error)
 	GetAccount(ctx context.Context, accountID string) (*model.Account, error)
 	GetAccountRole(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error)
-	GetDefaultOwnerAccountByProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, *model.Organisation, error)
+	GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, error)
+	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error)
 	GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model.AccountRole, error)
 	GetAccountRoles(ctx context.Context, accountID string) ([]*model.AccountRole, error)
 }
@@ -62,6 +63,10 @@ func (i *Impl) GetUserByEmail(ctx context.Context, email string) (*model.User, e
 	}
 
 	return toUser(*row), nil
+}
+
+func (i *Impl) EmailExists(ctx context.Context, email string) (bool, error) {
+	return i.db.EmailExists(ctx, email)
 }
 
 func (i *Impl) CreateAuthToken(ctx context.Context, input CreateAuthTokenInput) (*model.AuthToken, error) {
@@ -146,12 +151,13 @@ func (i *Impl) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountI
 ) {
 	var userRow *persistence.UserRow
 	if input.Provider == model.AuthProviderUsernamePassword {
-		_, err := i.db.GetUserByEmail(ctx, input.Email)
-		if err == nil {
-			return nil, nil, nil, nil, fmt.Errorf("user already exists")
-		}
-		if !errors.IsNotFound(err) {
+		found, err := i.db.EmailExists(ctx, input.Email)
+		if err != nil {
 			return nil, nil, nil, nil, fmt.Errorf("get user by email: %w", err)
+		}
+
+		if found {
+			return nil, nil, nil, nil, fmt.Errorf("user already exists")
 		}
 
 		userRow = &persistence.UserRow{
@@ -236,13 +242,22 @@ func (i *Impl) GetAccountRole(ctx context.Context, organisationID, accountID str
 	return toAccountRole(*row), nil
 }
 
-func (i *Impl) GetDefaultOwnerAccountByProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, *model.Organisation, error) {
-	accountRow, orgRow, err := i.db.GetDefaultOwnerAccountByProvider(ctx, provider, providerUserID)
+func (i *Impl) GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, error) {
+	row, err := i.db.GetAccountByAuthProvider(ctx, provider, providerUserID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("query default owner account by provider: %w", err)
+		return nil, fmt.Errorf("query account by provider: %w", err)
 	}
 
-	return toAccount(*accountRow), toOrganisation(*orgRow), nil
+	return toAccount(*row), nil
+}
+
+func (i *Impl) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error) {
+	orgRow, err := i.db.GetOrganisationByAccountIDAndRole(ctx, accountID, role)
+	if err != nil {
+		return nil, fmt.Errorf("query default owner account by provider: %w", err)
+	}
+
+	return toOrganisation(*orgRow), nil
 }
 
 func (i *Impl) GetAccountRoles(ctx context.Context, accountID string) ([]*model.AccountRole, error) {

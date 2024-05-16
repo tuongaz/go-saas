@@ -87,6 +87,21 @@ func (s *SQL) GetUserByEmail(ctx context.Context, email string) (*persistence.Us
 	return &row, nil
 }
 
+func (s *SQL) EmailExists(ctx context.Context, email string) (bool, error) {
+	var count int
+	err := s.getContext(
+		ctx,
+		&count,
+		"SELECT COUNT(*) FROM auth_user WHERE email = $1",
+		email,
+	)
+	if err != nil {
+		return false, fmt.Errorf("check email exists: %w", err)
+	}
+
+	return count > 0, nil
+}
+
 func (s *SQL) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*persistence.AuthTokenRow, error) {
 	var row persistence.AuthTokenRow
 	err := s.getContext(
@@ -178,32 +193,35 @@ func (s *SQL) GetOrganisationByID(ctx context.Context, id string) (*persistence.
 	return &row, nil
 }
 
-func (s *SQL) GetDefaultOwnerAccountByProvider(ctx context.Context, provider string, providerUserID string) (*persistence.AccountRow, *persistence.OrganisationRow, error) {
-	var accountRow persistence.AccountRow
+func (s *SQL) GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*persistence.AccountRow, error) {
+	var row persistence.AccountRow
 	err := s.getContext(
 		ctx,
-		&accountRow,
+		&row,
 		"SELECT * FROM account WHERE id = (SELECT account_id FROM auth_provider WHERE provider = $1 AND provider_user_id = $2)",
 		provider,
 		providerUserID,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("get default owner account by provider: %w", err)
+		return nil, fmt.Errorf("get account by auth provider: %w", err)
 	}
 
+	return &row, nil
+}
+
+func (s *SQL) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*persistence.OrganisationRow, error) {
 	var organisationRow persistence.OrganisationRow
-	err = s.getContext(
+	if err := s.getContext(
 		ctx,
 		&organisationRow,
 		"SELECT * FROM organisation WHERE id = (SELECT organisation_id FROM account_role WHERE account_id = $1 AND role = $2)",
-		accountRow.ID,
-		"OWNER",
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("get default owner organisation by provider: %w", err)
+		accountID,
+		role,
+	); err != nil {
+		return nil, fmt.Errorf("get default owner organisation by provider: %w", err)
 	}
 
-	return &accountRow, &organisationRow, nil
+	return &organisationRow, nil
 }
 
 func (s *SQL) CreateOwnerAccount(

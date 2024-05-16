@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"go.uber.org/multierr"
 
-	"github.com/tuongaz/go-saas/pkg/errors"
 	"github.com/tuongaz/go-saas/pkg/types"
 )
 
@@ -65,7 +65,7 @@ func ValidateFields(data types.M, fields []Field) error {
 		}
 
 		if !found {
-			return errors.NewValidationError(fmt.Errorf("field %s is not defined", k))
+			return apierror.NewValidationError(fmt.Errorf("field %s is not defined", k))
 		}
 	}
 
@@ -187,7 +187,7 @@ func ValidateFields(data types.M, fields []Field) error {
 				values = []any{value}
 			}
 		default:
-			appendError(errors.NewValidationError(fmt.Errorf("field %s has invalid type: %s", field.Name, field.Type)))
+			appendError(apierror.NewValidationError(fmt.Errorf("field %s has invalid type: %s", field.Name, field.Type)))
 			return allErrors
 		}
 
@@ -212,7 +212,7 @@ func ValidateFields(data types.M, fields []Field) error {
 	}
 
 	if allErrors != nil {
-		return errors.NewValidationError(allErrors)
+		return apierror.NewValidationError(allErrors)
 	}
 
 	return nil
@@ -290,7 +290,7 @@ func valuesInOptions(fieldName string, field Field, values ...any) error {
 func validateStrings(list []any) error {
 	for _, item := range list {
 		if _, ok := item.(string); !ok {
-			return errors.NewValidationError(fmt.Errorf("the value \"%v\" is not a string", item))
+			return apierror.NewValidationError(fmt.Errorf("the value \"%v\" is not a string", item))
 		}
 	}
 	return nil
@@ -299,7 +299,7 @@ func validateStrings(list []any) error {
 func validateIntegers(list []any) error {
 	for _, item := range list {
 		if !isInteger(item) {
-			return errors.NewValidationError(fmt.Errorf("the value \"%v\" is not an integer", item))
+			return apierror.NewValidationError(fmt.Errorf("the value \"%v\" is not an integer", item))
 		}
 	}
 	return nil
@@ -308,7 +308,7 @@ func validateIntegers(list []any) error {
 func validateNumbers(list []any) error {
 	for _, item := range list {
 		if !isNumber(item) {
-			return errors.NewValidationError(fmt.Errorf("the value \"%v\" is not a number", item))
+			return apierror.NewValidationError(fmt.Errorf("the value \"%v\" is not a number", item))
 		}
 	}
 	return nil

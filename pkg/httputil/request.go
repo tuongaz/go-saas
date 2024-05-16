@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"github.com/tuongaz/go-saas/pkg/log"
 )
 
@@ -32,7 +32,7 @@ func ParseRequestBody[T any](r *http.Request) (*T, error) {
 	}
 
 	if err := json.Unmarshal(body, target); err != nil {
-		return nil, errors.NewValidationError("invalid data structure", nil, fmt.Errorf("unmarshal request body: %w", err))
+		return nil, apierror.NewValidationError("invalid data structure", nil, fmt.Errorf("unmarshal request body: %w", err))
 	}
 
 	return target, nil

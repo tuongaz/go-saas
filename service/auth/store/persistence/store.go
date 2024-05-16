@@ -11,7 +11,8 @@ import (
 type Interface interface {
 	Connection() *sqlx.DB
 	GetAccount(ctx context.Context, accountID string) (*AccountRow, error)
-	GetDefaultOwnerAccountByProvider(ctx context.Context, provider string, providerUserID string) (*AccountRow, *OrganisationRow, error)
+	GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*AccountRow, error)
+	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*OrganisationRow, error)
 	CreateAuthToken(ctx context.Context, row AuthTokenRow) (sql.Result, error)
 	UpdateAuthToken(ctx context.Context, id string, input UpdateAuthTokenInput) (sql.Result, error)
 	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*AuthTokenRow, error)
@@ -25,6 +26,7 @@ type Interface interface {
 		userRow *UserRow,
 	) (err error)
 	GetUserByEmail(ctx context.Context, email string) (*UserRow, error)
+	EmailExists(ctx context.Context, email string) (bool, error)
 	GetAccountRole(ctx context.Context, organisationID, accountID string) (*AccountRoleRow, error)
 	GetAccountRoleByID(ctx context.Context, accountRoleID string) (*AccountRoleRow, error)
 	GetAccountRoles(ctx context.Context, accountID string) ([]*AccountRoleRow, error)

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"github.com/tuongaz/go-saas/pkg/log"
 )
 
@@ -76,22 +76,22 @@ func HandleResponse(ctx context.Context, w http.ResponseWriter, out any, err err
 	response := New(w)
 	if err != nil {
 		log.Default().ErrorContext(ctx, "request error", log.ErrorAttr(err))
-		if errors.IsValidation(err) {
+		if apierror.IsValidation(err) {
 			response.BadRequest(ctx, err)
 			return
 		}
 
-		if errors.IsNotFound(err) {
+		if apierror.IsNotFound1(err) {
 			response.NotFound(ctx, err)
 			return
 		}
 
-		if errors.IsForbidden(err) {
+		if apierror.IsForbidden(err) {
 			response.Forbidden(ctx, err)
 			return
 		}
 
-		if errors.IsUnauthorized(err) {
+		if apierror.IsUnauthorized(err) {
 			response.Unauthorized(ctx, err)
 			return
 		}

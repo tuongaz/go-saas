@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	errors2 "github.com/tuongaz/go-saas/pkg/errors"
-	"github.com/tuongaz/go-saas/store"
 )
 
 func (s *SQL) namedExecContext(
@@ -21,7 +20,7 @@ func (s *SQL) namedExecContext(
 		row,
 	)
 	if err != nil {
-		return nil, store.NewDBError(fmt.Errorf("named exec context: %w", err))
+		return nil, errors2.NewDBError(fmt.Errorf("named exec context: %w", err))
 	}
 
 	return result, nil
@@ -44,7 +43,7 @@ func (s *SQL) getContext(
 			return errors2.NewNotFoundErr(fmt.Errorf("get context: %w", err))
 		}
 
-		return store.NewDBError(fmt.Errorf("get context: %w", err))
+		return errors2.NewDBError(fmt.Errorf("get context: %w", err))
 	}
 
 	return nil
@@ -63,7 +62,7 @@ func (s *SQL) selectContext(
 		args...,
 	)
 	if err != nil {
-		return store.NewDBError(fmt.Errorf("select context: %w", err))
+		return errors2.NewDBError(fmt.Errorf("select context: %w", err))
 	}
 
 	return nil

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/tuongaz/go-saas/model"
-	"github.com/tuongaz/go-saas/pkg/errors"
+	"github.com/tuongaz/go-saas/pkg/errors/apierror"
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
@@ -16,13 +16,13 @@ func (s *Service) NewMiddleware() func(next http.Handler) http.Handler {
 			bearer := r.Header.Get("Authorization")
 			claims, err := s.signer.ParseCustomClaims(strings.Replace(bearer, "Bearer ", "", 1))
 			if err != nil {
-				httputil.HandleResponse(r.Context(), w, nil, errors.NewUnauthorizedErr(err))
+				httputil.HandleResponse(r.Context(), w, nil, apierror.NewUnauthorizedErr(err))
 				return
 			}
 
 			accRole, err := s.GetAccountRole(r.Context(), claims.Organisation, claims.Subject)
 			if err != nil {
-				httputil.HandleResponse(r.Context(), w, nil, errors.NewUnauthorizedErr(err))
+				httputil.HandleResponse(r.Context(), w, nil, apierror.NewUnauthorizedErr(err))
 				return
 			}
 
