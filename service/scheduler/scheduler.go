@@ -11,10 +11,9 @@ import (
 var _ Interface = &Scheduler{}
 
 type Interface interface {
-	NewDurationJob(d time.Duration, job func(), tags ...string) (id string, err error)
-	NewCronJobWithMinutes(cron string, job func(), tags ...string) (id string, err error)
-	NewCronJobWithSeconds(cron string, job func(), tags ...string) (id string, err error)
-	NewOneTimeJob(t time.Time, job func(), tags ...string) (id string, err error)
+	RunEvery(d time.Duration, job func(), tags ...string) (id string, err error)
+	RunCron(cron string, job func(), tags ...string) (id string, err error)
+	RunAt(t time.Time, job func(), tags ...string) (id string, err error)
 	RemoveJob(id string) error
 	RemoveJobByTags(tags ...string)
 }
@@ -38,6 +37,7 @@ func (s *Scheduler) Start() {
 	s.scheduler.Start()
 }
 
+// RemoveJob removes a job by its id
 func (s *Scheduler) RemoveJob(id string) error {
 	uid, err := s.uuid(id)
 	if err != nil {
@@ -50,11 +50,13 @@ func (s *Scheduler) RemoveJob(id string) error {
 	return nil
 }
 
+// RemoveJobByTags removes jobs by their tags
 func (s *Scheduler) RemoveJobByTags(tags ...string) {
 	s.scheduler.RemoveByTags(tags...)
 }
 
-func (s *Scheduler) NewDurationJob(d time.Duration, job func(), tags ...string) (id string, err error) {
+// RunEvery runs a job every d duration
+func (s *Scheduler) RunEvery(d time.Duration, job func(), tags ...string) (id string, err error) {
 	j, err := s.scheduler.NewJob(
 		gocron.DurationJob(d),
 		gocron.NewTask(job),
@@ -67,7 +69,8 @@ func (s *Scheduler) NewDurationJob(d time.Duration, job func(), tags ...string) 
 	return j.ID().String(), nil
 }
 
-func (s *Scheduler) NewCronJobWithMinutes(cron string, job func(), tags ...string) (id string, err error) {
+// RunCron runs a job every cron duration
+func (s *Scheduler) RunCron(cron string, job func(), tags ...string) (id string, err error) {
 	j, err := s.scheduler.NewJob(
 		gocron.CronJob(cron, true),
 		gocron.NewTask(job),
@@ -80,20 +83,8 @@ func (s *Scheduler) NewCronJobWithMinutes(cron string, job func(), tags ...strin
 	return j.ID().String(), nil
 }
 
-func (s *Scheduler) NewCronJobWithSeconds(cron string, job func(), tags ...string) (id string, err error) {
-	j, err := s.scheduler.NewJob(
-		gocron.CronJob(cron, true),
-		gocron.NewTask(job),
-		gocron.WithTags(tags...),
-	)
-	if err != nil {
-		return "", fmt.Errorf("new cron job: %w", err)
-	}
-
-	return j.ID().String(), nil
-}
-
-func (s *Scheduler) NewOneTimeJob(t time.Time, job func(), tags ...string) (id string, err error) {
+// RunAt runs a job at a specific time (UTC)
+func (s *Scheduler) RunAt(t time.Time, job func(), tags ...string) (id string, err error) {
 	j, err := s.scheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(t)),
 		gocron.NewTask(job),
