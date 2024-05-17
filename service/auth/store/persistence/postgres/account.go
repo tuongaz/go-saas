@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/tuongaz/go-saas/pkg/timer"
 
 	"github.com/tuongaz/go-saas/service/auth/store/persistence"
 )
@@ -40,14 +41,14 @@ func (s *SQL) CreateAuthToken(ctx context.Context, row persistence.AuthTokenRow)
 	return result, nil
 }
 
-func (s *SQL) UpdateAuthToken(ctx context.Context, id string, input persistence.UpdateAuthTokenInput) (sql.Result, error) {
+func (s *SQL) UpdateRefreshToken(ctx context.Context, id string, refreshToken string) (sql.Result, error) {
 	result, err := s.namedExecContext(
 		ctx,
 		"UPDATE auth_token SET refresh_token = :refresh_token, updated_at = :updated_at WHERE id = :id",
 		map[string]interface{}{
 			"id":            id,
-			"refresh_token": input.RefreshToken,
-			"updated_at":    input.UpdatedAt,
+			"refresh_token": refreshToken,
+			"updated_at":    timer.Now(),
 		},
 	)
 	if err != nil {

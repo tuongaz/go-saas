@@ -22,7 +22,7 @@ type Interface interface {
 	CreateAuthToken(ctx context.Context, row CreateAuthTokenInput) (*model2.AuthToken, error)
 	GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*model2.AuthToken, error)
 	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model2.AuthToken, error)
-	UpdateAuthToken(ctx context.Context, id string, row UpdateAuthTokenInput) error
+	UpdateRefreshToken(ctx context.Context, id string, refreshToken string) error
 	CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
 		*model2.Account,
 		*model2.Organisation,
@@ -85,12 +85,9 @@ func (i *Impl) CreateAuthToken(ctx context.Context, input CreateAuthTokenInput) 
 	return toAuthToken(row), nil
 }
 
-func (i *Impl) UpdateAuthToken(ctx context.Context, id string, input UpdateAuthTokenInput) error {
-	if _, err := i.db.UpdateAuthToken(ctx, id, persistence.UpdateAuthTokenInput{
-		RefreshToken: input.RefreshToken,
-		UpdatedAt:    timer.Now(),
-	}); err != nil {
-		return fmt.Errorf("update auth token: %w", err)
+func (i *Impl) UpdateRefreshToken(ctx context.Context, id string, refreshToken string) error {
+	if _, err := i.db.UpdateRefreshToken(ctx, id, refreshToken); err != nil {
+		return fmt.Errorf("update refresh token: %w", err)
 	}
 
 	return nil

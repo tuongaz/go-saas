@@ -157,9 +157,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 
 	newRefreshToken := uuid.New().String()
-	if err := s.store.UpdateAuthToken(ctx, authToken.ID, store.UpdateAuthTokenInput{
-		RefreshToken: newRefreshToken,
-	}); err != nil {
+	if err := s.store.UpdateRefreshToken(ctx, authToken.ID, newRefreshToken); err != nil {
 		return nil, err
 	}
 

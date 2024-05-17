@@ -14,7 +14,7 @@ type Interface interface {
 	GetAccountByAuthProvider(ctx context.Context, provider string, providerUserID string) (*AccountRow, error)
 	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*OrganisationRow, error)
 	CreateAuthToken(ctx context.Context, row AuthTokenRow) (sql.Result, error)
-	UpdateAuthToken(ctx context.Context, id string, input UpdateAuthTokenInput) (sql.Result, error)
+	UpdateRefreshToken(ctx context.Context, id string, refreshToken string) (sql.Result, error)
 	GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*AuthTokenRow, error)
 	GetAuthTokenByAccountRoleID(ctx context.Context, accountRoleID string) (*AuthTokenRow, error)
 	CreateOwnerAccount(
