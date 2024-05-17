@@ -10,6 +10,7 @@ import (
 	"github.com/tuongaz/go-saas/app"
 	"github.com/tuongaz/go-saas/pkg/encrypt"
 	"github.com/tuongaz/go-saas/pkg/hooks"
+	"github.com/tuongaz/go-saas/pkg/log"
 	model2 "github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/signer"
 	"github.com/tuongaz/go-saas/service/auth/store"
@@ -40,11 +41,11 @@ type OAuth2ProviderConfig struct {
 type Config struct {
 	JWTSigningSecret        string
 	JWTIssuer               string
-	JWTTokenLifetimeMinutes int
+	JWTTokenLifetimeMinutes uint
 	Providers               []OAuth2ProviderConfig
 }
 
-func WithJWTTokenLifetimeMinutes(minutes int) func(*Config) {
+func WithJWTTokenLifetimeMinutes(minutes uint) func(*Config) {
 	return func(cfg *Config) {
 		cfg.JWTTokenLifetimeMinutes = minutes
 	}
@@ -163,7 +164,10 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 
 	authToken.RefreshToken = newRefreshToken
 
-	return s.newAuthenticatedInfo(accountRole, authToken)
+	info, err := s.newAuthenticatedInfo(accountRole, authToken)
+	log.Info("refresh token", info.RefreshToken, err)
+
+	return info, err
 }
 
 func (s *Service) bootstrap() error {

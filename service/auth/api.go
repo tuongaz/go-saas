@@ -19,6 +19,7 @@ func (s *Service) setupAPI(router *chi.Mux) {
 		r.Get("/oauth2-providers", s.Oauth2EnabledProvidersHandler)
 		r.Post("/signup", s.SignupHandler)
 		r.Post("/login", s.LoginHandler)
+		r.Post("/token", s.RefreshTokenHandler)
 		r.Get("/{provider}", s.Oauth2AuthenticateHandler)
 		r.Get("/{provider}/callback", s.Oauth2LoginSignupCallbackHandler)
 
@@ -116,6 +117,14 @@ func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authInfo, err := s.loginUsernamePasswordAccount(ctx, input)
+	httputil.HandleResponse(ctx, w, authInfo, err)
+}
+
+func (s *Service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	refreshToken := r.URL.Query().Get("refresh_token")
+
+	authInfo, err := s.RefreshToken(ctx, refreshToken)
 	httputil.HandleResponse(ctx, w, authInfo, err)
 }
 
