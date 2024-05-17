@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	"github.com/tuongaz/go-saas/pkg/log"
