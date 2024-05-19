@@ -145,9 +145,7 @@ func (a *App) bootstrap(ctx context.Context) error {
 	}
 
 	a.OnTerminate().Add(func(ctx context.Context, e *OnTerminateEvent) error {
-		if err := a.store.Close(); err != nil {
-			log.ErrorContext(ctx, "failed to close store", err)
-		}
+		a.store.Close()
 
 		return nil
 	})

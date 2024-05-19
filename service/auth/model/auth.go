@@ -10,17 +10,15 @@ const (
 	AuthProviderUsernamePassword = "username_password"
 )
 
-type AuthToken struct {
-	ID            string    `json:"id"`
-	AccountRoleID string    `json:"account_role_id"`
-	RefreshToken  string    `json:"refresh_token"`
-	ExpiresAt     time.Time `json:"expires_at"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-}
-
-func (a *AuthToken) IsExpired() bool {
-	return a.ExpiresAt.Before(time.Now())
+type AccessToken struct {
+	ID             string    `json:"id"`
+	AccountRoleID  string    `json:"account_role_id"`
+	RefreshToken   string    `json:"refresh_token"`
+	Device         string    `json:"device"`
+	ProviderUserID string    `json:"provider_user_id"`
+	LastAccessedAt time.Time `json:"last_access_at"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type CustomClaims struct {
@@ -42,7 +40,7 @@ type Provider struct {
 	CallbackURL string
 }
 
-type AuthProvider struct {
+type LoginProvider struct {
 	ID             string    `json:"id"`
 	AccountID      string    `json:"account_id"`
 	Provider       string    `json:"provider"`

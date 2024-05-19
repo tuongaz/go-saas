@@ -1,52 +1,68 @@
 package store
 
 import (
+	"context"
 	"fmt"
-	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tuongaz/go-saas/config"
 )
 
+var _ Interface = (*Store)(nil)
+
+type Interface interface {
+	Collection(table string) *Collection
+	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
+	Tx(ctx context.Context) (*StoreTx, error)
+}
+
 type Store struct {
-	db *sqlx.DB
+	db *pgxpool.Pool
 }
 
 func New(cfg config.Interface) (*Store, error) {
 	datasource := cfg.GetPostgresDataSource()
-	dbName := extractDBName(datasource)
-	if dbName == "" {
-		return nil, fmt.Errorf("dbname required")
+
+	poolConfig, err := pgxpool.ParseConfig(datasource)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse pool config: %w", err)
 	}
 
-	db, err := sqlx.Connect("postgres", datasource)
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
+		return nil, fmt.Errorf("unable to create pool: %w", err)
 	}
 
 	return &Store{
-		db: db,
+		db: pool,
 	}, nil
 }
 
-func (s *Store) DB() *sqlx.DB {
-	return s.db
+func (s *Store) Collection(table string) *Collection {
+	return &Collection{
+		table: table,
+		db:    s.db,
+	}
 }
 
-func (s *Store) Close() error {
+func (s *Store) Exec(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error) {
+	return s.db.Exec(ctx, query, args...)
+}
+
+func (s *Store) Tx(ctx context.Context) (*StoreTx, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+
+	return &StoreTx{
+		tx: tx,
+	}, nil
+}
+
+func (s *Store) Close() {
 	if s.db != nil {
-		return s.db.Close()
+		s.db.Close()
 	}
-
-	return nil
-}
-
-func extractDBName(connStr string) string {
-	parts := strings.Split(connStr, " ")
-	for _, part := range parts {
-		if strings.HasPrefix(part, "dbname=") {
-			return strings.TrimPrefix(part, "dbname=")
-		}
-	}
-	return ""
 }

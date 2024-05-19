@@ -22,7 +22,7 @@ func (s *Service) oauth2Authenticate(
 	var err error
 	var newAccount bool
 
-	ownerAcc, err = s.store.GetAccountByAuthProvider(ctx, user.Provider, user.UserID)
+	ownerAcc, err = s.store.GetAccountByLoginProvider(ctx, user.Provider, user.UserID)
 	if err != nil && !store2.IsNotFoundError(err) {
 		return nil, fmt.Errorf("get account by auth provider: %w", err)
 	}
@@ -49,12 +49,12 @@ func (s *Service) oauth2Authenticate(
 		}
 	}
 
-	accountRole, err := s.store.GetAccountRole(ctx, org.ID, ownerAcc.ID)
+	accountRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, org.ID, ownerAcc.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.getAuthenticatedInfo(ctx, accountRole)
+	return s.getAuthenticatedInfo(ctx, accountRole, user.UserID, DeviceFromCtx(ctx))
 }
 
 func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider OAuth2ProviderConfig, user oauth2.User) {

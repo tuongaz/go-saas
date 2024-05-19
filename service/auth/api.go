@@ -13,7 +13,9 @@ import (
 
 func (s *Service) setupAPI(router *chi.Mux) {
 	authMiddleware := s.NewMiddleware()
+	deviceMiddleware := s.NewDeviceMiddleware()
 
+	router.Use(deviceMiddleware)
 	router.Route("/auth", func(r chi.Router) {
 		// public routes
 		r.Get("/oauth2-providers", s.Oauth2EnabledProvidersHandler)

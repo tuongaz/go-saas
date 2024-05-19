@@ -16,6 +16,10 @@ func (e NotFoundErr) Error() string {
 	return e.err.Error()
 }
 
+func (e NotFoundErr) Unwrap() error {
+	return e.err
+}
+
 func IsNotFoundError(err error) bool {
 	if err == nil {
 		return false
@@ -34,4 +38,8 @@ func NewDBError(err error) *DBError {
 
 func (e *DBError) Error() string {
 	return e.Err.Error()
+}
+
+func (e *DBError) Unwrap() error {
+	return e.Err
 }

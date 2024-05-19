@@ -11,7 +11,7 @@ import (
 	"github.com/tuongaz/go-saas/pkg/encrypt"
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	"github.com/tuongaz/go-saas/pkg/log"
-	model2 "github.com/tuongaz/go-saas/service/auth/model"
+	"github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/service/auth/signer"
 	"github.com/tuongaz/go-saas/service/auth/store"
 )
@@ -105,8 +105,8 @@ func Register(appInstance app.Interface, opts ...func(*Config)) *Service {
 	return authSrv
 }
 
-func (s *Service) GetAccountRole(ctx context.Context, organisationID, accountID string) (*model2.AccountRole, error) {
-	accRole, err := s.store.GetAccountRole(ctx, organisationID, accountID)
+func (s *Service) GetAccountRole(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error) {
+	accRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, organisationID, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("get account role: %w", err)
 	}
@@ -114,8 +114,8 @@ func (s *Service) GetAccountRole(ctx context.Context, organisationID, accountID 
 	return accRole, nil
 }
 
-func (s *Service) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model2.AuthToken, error) {
-	authToken, err := s.store.GetAuthTokenByRefreshToken(ctx, refreshToken)
+func (s *Service) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AccessToken, error) {
+	authToken, err := s.store.GetAccessTokenByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("get auth token by refresh token: %w", err)
 	}
@@ -123,21 +123,21 @@ func (s *Service) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken s
 	return authToken, nil
 }
 
-func (s *Service) CreateAuthToken(ctx context.Context, accountRoleID string) (*model2.AuthToken, error) {
+func (s *Service) CreateAuthToken(ctx context.Context, accountRoleID string) (*model.AccessToken, error) {
 	refreshToken := uuid.New().String()
-	if _, err := s.store.CreateAuthToken(ctx, store.CreateAuthTokenInput{
+	if _, err := s.store.CreateAccessToken(ctx, store.CreateAccessTokenInput{
 		AccountRoleID: accountRoleID,
 		RefreshToken:  refreshToken,
 	}); err != nil {
 		return nil, fmt.Errorf("create auth token: %w", err)
 	}
 
-	return &model2.AuthToken{
+	return &model.AccessToken{
 		RefreshToken: refreshToken,
 	}, nil
 }
 
-func (s *Service) NewToken(ctx context.Context, accountRole *model2.AccountRole) (*model2.AuthenticatedInfo, error) {
+func (s *Service) NewToken(ctx context.Context, accountRole *model.AccountRole) (*model.AuthenticatedInfo, error) {
 	authToken, err := s.CreateAuthToken(ctx, accountRole.ID)
 	if err != nil {
 		return nil, err
@@ -146,8 +146,8 @@ func (s *Service) NewToken(ctx context.Context, accountRole *model2.AccountRole)
 	return s.newAuthenticatedInfo(accountRole, authToken)
 }
 
-func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model2.AuthenticatedInfo, error) {
-	authToken, err := s.store.GetAuthTokenByRefreshToken(ctx, refreshToken)
+func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.AuthenticatedInfo, error) {
+	authToken, err := s.store.GetAccessTokenByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 }
 
 func (s *Service) bootstrap() error {
-	authStore, err := store.New(s.app.Store().DB())
+	authStore, err := store.New(s.app.Store())
 	if err != nil {
 		return fmt.Errorf("new auth store: %w", err)
 	}
@@ -188,10 +188,10 @@ func (s *Service) bootstrap() error {
 }
 
 func (s *Service) newAuthenticatedInfo(
-	accountRole *model2.AccountRole,
-	authToken *model2.AuthToken,
-) (*model2.AuthenticatedInfo, error) {
-	claims := model2.CustomClaims{
+	accountRole *model.AccountRole,
+	authToken *model.AccessToken,
+) (*model.AuthenticatedInfo, error) {
+	claims := model.CustomClaims{
 		Organisation: accountRole.OrganisationID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:  s.jwtIssuer,
@@ -210,7 +210,7 @@ func (s *Service) newAuthenticatedInfo(
 		return nil, fmt.Errorf("sign jwt: %w", err)
 	}
 
-	return &model2.AuthenticatedInfo{
+	return &model.AuthenticatedInfo{
 		RefreshToken: authToken.RefreshToken,
 		Type:         "Bearer",
 		Token:        jwtToken,
@@ -218,11 +218,20 @@ func (s *Service) newAuthenticatedInfo(
 	}, nil
 }
 
-func (s *Service) getAuthenticatedInfo(ctx context.Context, accountRole *model2.AccountRole) (*model2.AuthenticatedInfo, error) {
-	authToken, err := s.store.GetAuthTokenByAccountRoleID(ctx, accountRole.ID)
+func (s *Service) getAuthenticatedInfo(
+	ctx context.Context,
+	accountRole *model.AccountRole,
+	providerUserID string,
+	device string,
+) (*model.AuthenticatedInfo, error) {
+	accessToken, err := s.store.GetAccessToken(ctx, store.GetAccessTokenInput{
+		AccountRoleID:  accountRole.ID,
+		ProviderUserID: providerUserID,
+		Device:         device,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get auth token by account id: %w", err)
 	}
 
-	return s.newAuthenticatedInfo(accountRole, authToken)
+	return s.newAuthenticatedInfo(accountRole, accessToken)
 }

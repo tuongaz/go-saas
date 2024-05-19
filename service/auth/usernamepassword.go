@@ -27,10 +27,11 @@ func (s *Service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
 ) (*model2.AuthenticatedInfo, error) {
-	found, err := s.store.EmailExists(ctx, input.Email)
+	found, err := s.store.LoginCredentialsUserEmailExists(ctx, input.Email)
 	if err != nil {
 		return nil, fmt.Errorf("check email exists: %w", err)
 	}
+
 	if found {
 		return nil, apierror.NewValidationError("Email already exists", nil, nil)
 	}
@@ -42,7 +43,7 @@ func (s *Service) signupUsernamePasswordAccount(
 
 	firstName, lastName := splitName(input.Name)
 
-	ownerAcc, org, _, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
+	ownerAcc, org, loginProvider, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
 		Email:     input.Email,
 		Name:      input.Name,
 		FirstName: firstName,
@@ -65,7 +66,7 @@ func (s *Service) signupUsernamePasswordAccount(
 		return nil, fmt.Errorf("notify account created: %w", err)
 	}
 
-	out, err := s.getAuthenticatedInfo(ctx, accountRole)
+	out, err := s.getAuthenticatedInfo(ctx, accountRole, loginProvider.ProviderUserID, DeviceFromCtx(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("get authenticated info: %w", err)
 	}
@@ -77,7 +78,7 @@ func (s *Service) loginUsernamePasswordAccount(
 	ctx context.Context,
 	input *LoginInput,
 ) (*model2.AuthenticatedInfo, error) {
-	user, err := s.store.GetUserByEmail(ctx, input.Email)
+	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, input.Email)
 	if err != nil {
 		if store2.IsNotFoundError(err) {
 			return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
@@ -90,7 +91,7 @@ func (s *Service) loginUsernamePasswordAccount(
 		return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
 	}
 
-	acc, err := s.store.GetAccountByAuthProvider(ctx, model2.AuthProviderUsernamePassword, user.ID)
+	acc, err := s.store.GetAccountByLoginProvider(ctx, model2.AuthProviderUsernamePassword, user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("get account by auth provider: %w", err)
 	}
@@ -100,12 +101,12 @@ func (s *Service) loginUsernamePasswordAccount(
 		return nil, fmt.Errorf("get default owner account by provider: %w", err)
 	}
 
-	accountRole, err := s.store.GetAccountRole(ctx, org.ID, acc.ID)
+	accountRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, org.ID, acc.ID)
 	if err != nil {
 		return nil, fmt.Errorf("get account role: %w", err)
 	}
 
-	return s.getAuthenticatedInfo(ctx, accountRole)
+	return s.getAuthenticatedInfo(ctx, accountRole, user.ID, DeviceFromCtx(ctx))
 }
 
 func (s *Service) hashPassword(password string) (string, error) {

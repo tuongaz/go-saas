@@ -23,3 +23,7 @@ func (DefaultTimerImpl) Now() time.Time {
 func Now() time.Time {
 	return DefaultTimer.Now()
 }
+
+func NowString() string {
+	return Now().Format(time.RFC3339)
+}
