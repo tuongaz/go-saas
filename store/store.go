@@ -2,40 +2,42 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/tuongaz/go-saas/config"
 )
 
 var _ Interface = (*Store)(nil)
 
+type dbInterface interface {
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
 type Interface interface {
 	Collection(table string) *Collection
-	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
+	Exec(ctx context.Context, query string, args ...any) error
 	Tx(ctx context.Context) (*StoreTx, error)
 }
 
 type Store struct {
-	db *pgxpool.Pool
+	db *sqlx.DB
 }
 
 func New(cfg config.Interface) (*Store, error) {
 	datasource := cfg.GetPostgresDataSource()
 
-	poolConfig, err := pgxpool.ParseConfig(datasource)
+	db, err := sqlx.Connect("postgres", datasource)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse pool config: %w", err)
-	}
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create pool: %w", err)
+		return nil, fmt.Errorf("unable to connect to db: %w", err)
 	}
 
 	return &Store{
-		db: pool,
+		db: db,
 	}, nil
 }
 
@@ -46,12 +48,16 @@ func (s *Store) Collection(table string) *Collection {
 	}
 }
 
-func (s *Store) Exec(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error) {
-	return s.db.Exec(ctx, query, args...)
+func (s *Store) Exec(ctx context.Context, query string, args ...interface{}) error {
+	if _, err := s.db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("exec query: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Store) Tx(ctx context.Context) (*StoreTx, error) {
-	tx, err := s.db.Begin(ctx)
+	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
@@ -63,6 +69,6 @@ func (s *Store) Tx(ctx context.Context) (*StoreTx, error) {
 
 func (s *Store) Close() {
 	if s.db != nil {
-		s.db.Close()
+		_ = s.db.Close()
 	}
 }

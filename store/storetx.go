@@ -2,28 +2,17 @@ package store
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
+	"fmt"
 )
 
-var _ TxInterface = (*StoreTx)(nil)
-
-type TxInterface interface {
-	Collection(table string) *Collection
-	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
-	Commit(ctx context.Context) error
-	Rollback(ctx context.Context) error
+type dbxInterface interface {
+	dbInterface
+	Commit() error
+	Rollback() error
 }
 
 type StoreTx struct {
-	tx pgx.Tx
-}
-
-func newStoreTx(tx pgx.Tx) *StoreTx {
-	return &StoreTx{
-		tx: tx,
-	}
+	tx dbxInterface
 }
 
 func (s *StoreTx) Collection(table string) *Collection {
@@ -33,14 +22,18 @@ func (s *StoreTx) Collection(table string) *Collection {
 	}
 }
 
-func (s *StoreTx) Exec(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error) {
-	return s.tx.Exec(ctx, query, args...)
+func (s *StoreTx) Exec(ctx context.Context, query string, args ...interface{}) error {
+	if _, err := s.tx.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("exec tx query: %w", err)
+	}
+
+	return nil
 }
 
-func (s *StoreTx) Commit(ctx context.Context) error {
-	return s.tx.Commit(ctx)
+func (s *StoreTx) Commit() error {
+	return s.tx.Commit()
 }
 
-func (s *StoreTx) Rollback(ctx context.Context) error {
-	return s.tx.Rollback(ctx)
+func (s *StoreTx) Rollback() error {
+	return s.tx.Rollback()
 }
