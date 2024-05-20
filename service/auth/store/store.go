@@ -84,7 +84,7 @@ type Interface interface {
 }
 
 func New(store store.Interface) (*Store, error) {
-	if _, err := store.Exec(context.Background(), postgresSchema); err != nil {
+	if err := store.Exec(context.Background(), postgresSchema); err != nil {
 		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
 
@@ -134,7 +134,11 @@ func (s *Store) UpdateRefreshToken(ctx context.Context, id string, refreshToken 
 }
 
 func (s *Store) GetAccessToken(ctx context.Context, input GetAccessTokenInput) (*model.AccessToken, error) {
-	record, err := s.store.Collection(tableAccessToken).FindOne(ctx, store.Record{})
+	record, err := s.store.Collection(tableAccessToken).FindOne(ctx, store.Record{
+		"account_role_id":  input.AccountRoleID,
+		"provider_user_id": input.ProviderUserID,
+		"device":           input.Device,
+	})
 	if err != nil {
 		if store.IsNotFoundError(err) {
 			return s.CreateAccessToken(ctx, CreateAccessTokenInput{
@@ -201,7 +205,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 	}
 	defer func() {
 		if err != nil {
-			_ = tx.Rollback(ctx)
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -305,7 +309,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		return nil, nil, nil, nil, fmt.Errorf("create auth provider: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("commit tx: %w", err)
 	}
 
