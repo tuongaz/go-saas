@@ -87,7 +87,6 @@ CREATE TABLE IF NOT EXISTS access_token
         CONSTRAINT auth_token_account_role_auth_tokens
             REFERENCES organisation_account_role
             ON DELETE CASCADE,
-    last_accessed_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at       TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at       TIMESTAMP WITH TIME ZONE NOT NULL
 );

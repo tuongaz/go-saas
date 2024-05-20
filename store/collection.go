@@ -3,11 +3,10 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/mitchellh/mapstructure"
 )
 
 type Record map[string]any
@@ -17,10 +16,13 @@ func (r Record) Get(key string) any {
 }
 
 func (r Record) Decode(obj any) error {
-	if err := mapstructure.Decode(r, obj); err != nil {
-		return fmt.Errorf("decode record: %w", err)
+	jsonData, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("encode to json: %w", err)
 	}
-
+	if err := json.Unmarshal(jsonData, obj); err != nil {
+		return fmt.Errorf("decode json to struct: %w", err)
+	}
 	return nil
 }
 
@@ -42,14 +44,13 @@ func (c *Collection) CreateRecord(ctx context.Context, record Record) (*Record, 
 		i++
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) RETURNING id", c.table, strings.Join(keys, ", "), strings.Join(placeholders, ", "))
-	var id string
-	err := c.db.GetContext(ctx, &id, query, values...)
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", c.table, strings.Join(keys, ", "), strings.Join(placeholders, ", "))
+	_, err := c.db.ExecContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.GetRecord(ctx, id)
+	return &record, nil
 }
 
 func (c *Collection) GetRecord(ctx context.Context, id any) (*Record, error) {

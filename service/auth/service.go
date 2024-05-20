@@ -140,24 +140,32 @@ func (s *Service) CreateAccessToken(ctx context.Context, accountRoleID, provider
 }
 
 func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.AuthenticatedInfo, error) {
-	authToken, err := s.store.GetAccessTokenByRefreshToken(ctx, refreshToken)
+	accessToken, err := s.store.GetAccessTokenByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	accountRole, err := s.store.GetAccountRoleByID(ctx, authToken.AccountRoleID)
+	accountRole, err := s.store.GetAccountRoleByID(ctx, accessToken.AccountRoleID)
 	if err != nil {
 		return nil, err
 	}
 
 	newRefreshToken := uuid.New().String()
-	if err := s.store.UpdateRefreshToken(ctx, authToken.ID, newRefreshToken); err != nil {
+	newAccessToken, err := s.store.CreateAccessToken(ctx, store.CreateAccessTokenInput{
+		AccountRoleID:  accountRole.ID,
+		RefreshToken:   newRefreshToken,
+		Device:         DeviceFromCtx(ctx),
+		ProviderUserID: accessToken.ProviderUserID,
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	authToken.RefreshToken = newRefreshToken
+	info, err := s.newAuthenticatedInfo(accountRole, newAccessToken)
+	if err != nil {
+		return nil, err
+	}
 
-	info, err := s.newAuthenticatedInfo(accountRole, authToken)
 	log.Info("refresh token", info.RefreshToken, err)
 
 	return info, err

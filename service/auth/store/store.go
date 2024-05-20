@@ -106,7 +106,6 @@ func (s *Store) CreateAccessToken(ctx context.Context, input CreateAccessTokenIn
 		"provider_user_id": input.ProviderUserID,
 		"created_at":       timer.Now(),
 		"updated_at":       timer.Now(),
-		"last_accessed_at": timer.Now(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create access token: %w", err)
