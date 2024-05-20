@@ -133,7 +133,7 @@ func (s *Store) UpdateRefreshToken(ctx context.Context, id string, refreshToken 
 }
 
 func (s *Store) GetAccessToken(ctx context.Context, input GetAccessTokenInput) (*model.AccessToken, error) {
-	record, err := s.store.Collection(tableAccessToken).FindOne(ctx, store.Record{
+	record, err := s.store.Collection(tableAccessToken).FindOne(ctx, store.Filter{
 		"account_role_id":  input.AccountRoleID,
 		"provider_user_id": input.ProviderUserID,
 		"device":           input.Device,
@@ -160,7 +160,7 @@ func (s *Store) GetAccessToken(ctx context.Context, input GetAccessTokenInput) (
 }
 
 func (s *Store) GetLoginCredentialsUserByEmail(ctx context.Context, email string) (*model.LoginCredentialsUser, error) {
-	record, err := s.store.Collection(tableLoginCredentialsUser).FindOne(ctx, store.Record{"email": email})
+	record, err := s.store.Collection(tableLoginCredentialsUser).FindOne(ctx, store.Filter{"email": email})
 	if err != nil {
 		return nil, err
 	}
@@ -174,11 +174,11 @@ func (s *Store) GetLoginCredentialsUserByEmail(ctx context.Context, email string
 }
 
 func (s *Store) LoginCredentialsUserEmailExists(ctx context.Context, email string) (bool, error) {
-	return s.store.Collection(tableLoginCredentialsUser).Exists(ctx, store.Record{"email": email})
+	return s.store.Collection(tableLoginCredentialsUser).Exists(ctx, store.Filter{"email": email})
 }
 
 func (s *Store) GetAccessTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AccessToken, error) {
-	record, err := s.store.Collection(tableAccessToken).FindOne(ctx, store.Record{"refresh_token": refreshToken})
+	record, err := s.store.Collection(tableAccessToken).FindOne(ctx, store.Filter{"refresh_token": refreshToken})
 	if err != nil {
 		return nil, fmt.Errorf("get access token by refresh token: %w", err)
 	}
@@ -335,7 +335,7 @@ func (s *Store) GetAccount(ctx context.Context, accountID string) (*model.Accoun
 }
 
 func (s *Store) GetAccountByLoginProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, error) {
-	loginProvider, err := s.store.Collection(tableLoginProvider).FindOne(ctx, store.Record{
+	loginProvider, err := s.store.Collection(tableLoginProvider).FindOne(ctx, store.Filter{
 		"provider":         provider,
 		"provider_user_id": providerUserID,
 	})
@@ -363,7 +363,7 @@ func (s *Store) GetAccountRoleByID(ctx context.Context, accountRoleID string) (*
 }
 
 func (s *Store) GetAccountRoleByOrgAndAccountID(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error) {
-	record, err := s.store.Collection(tableOrganisationAccountRole).FindOne(ctx, store.Record{
+	record, err := s.store.Collection(tableOrganisationAccountRole).FindOne(ctx, store.Filter{
 		"organisation_id": organisationID,
 		"account_id":      accountID,
 	})
@@ -394,7 +394,7 @@ func (s *Store) GetOrganisation(ctx context.Context, organisationID string) (*mo
 }
 
 func (s *Store) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error) {
-	record, err := s.store.Collection(tableOrganisationAccountRole).FindOne(ctx, store.Record{
+	record, err := s.store.Collection(tableOrganisationAccountRole).FindOne(ctx, store.Filter{
 		"account_id": accountID,
 		"role":       role,
 	})

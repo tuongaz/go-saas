@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+type Filter map[string]any
+
 type Record map[string]any
 
 func (r Record) Get(key string) any {
@@ -105,7 +107,7 @@ func (c *Collection) DeleteRecord(ctx context.Context, id any) error {
 	return err
 }
 
-func (c *Collection) FindOne(ctx context.Context, filter any) (*Record, error) {
+func (c *Collection) FindOne(ctx context.Context, filter Filter) (*Record, error) {
 	var rec Record = make(map[string]interface{})
 	query, args := buildQuery("SELECT * FROM "+c.table, filter)
 	rows, err := c.db.QueryxContext(ctx, query+" LIMIT 1", args...)
@@ -132,7 +134,7 @@ func (c *Collection) FindOne(ctx context.Context, filter any) (*Record, error) {
 	return &rec, nil
 }
 
-func (c *Collection) Find(ctx context.Context, filter any) ([]Record, error) {
+func (c *Collection) Find(ctx context.Context, filter Filter) ([]Record, error) {
 	query, args := buildQuery("SELECT * FROM "+c.table, filter)
 	rows, err := c.db.QueryxContext(ctx, query, args...)
 	if err != nil {
@@ -159,7 +161,7 @@ func (c *Collection) Find(ctx context.Context, filter any) ([]Record, error) {
 	return recs, nil
 }
 
-func (c *Collection) Count(ctx context.Context, filter any) (int, error) {
+func (c *Collection) Count(ctx context.Context, filter Filter) (int, error) {
 	var count int
 	query, args := buildQuery("SELECT COUNT(*) FROM "+c.table, filter)
 	err := c.db.GetContext(ctx, &count, query, args...)
@@ -169,7 +171,7 @@ func (c *Collection) Count(ctx context.Context, filter any) (int, error) {
 	return count, nil
 }
 
-func (c *Collection) Exists(ctx context.Context, filter any) (bool, error) {
+func (c *Collection) Exists(ctx context.Context, filter Filter) (bool, error) {
 	count, err := c.Count(ctx, filter)
 	if err != nil {
 		return false, err
@@ -178,40 +180,19 @@ func (c *Collection) Exists(ctx context.Context, filter any) (bool, error) {
 }
 
 // buildQuery helps in constructing SQL query strings based on a filter which can be a string or a map[string]any.
-func buildQuery(baseQuery string, filter any) (string, []any) {
-	switch f := filter.(type) {
-	case string:
-		// Directly use the string as SQL where clause.
-		return baseQuery + " WHERE " + f, nil
-	case map[string]any:
-		if len(f) == 0 {
-			return baseQuery, nil
-		}
-		// Construct where clause from map with PostgreSQL placeholders.
-		var parts []string
-		var args []any
-		i := 1 // Start indexing from 1 for PostgreSQL placeholders
-		for k, v := range f {
-			parts = append(parts, fmt.Sprintf("%s = $%d", k, i))
-			args = append(args, v)
-			i++
-		}
-		return baseQuery + " WHERE " + strings.Join(parts, " AND "), args
-	case Record:
-		if len(f) == 0 {
-			return baseQuery, nil
-		}
-		// Construct where clause from map with PostgreSQL placeholders.
-		var parts []string
-		var args []any
-		i := 1 // Start indexing from 1 for PostgreSQL placeholders
-		for k, v := range f {
-			parts = append(parts, fmt.Sprintf("%s = $%d", k, i))
-			args = append(args, v)
-			i++
-		}
-		return baseQuery + " WHERE " + strings.Join(parts, " AND "), args
-	default:
+func buildQuery(baseQuery string, filter Filter) (string, []any) {
+	if len(filter) == 0 {
 		return baseQuery, nil
 	}
+
+	var parts []string
+	var args []any
+	i := 1
+
+	for k, v := range filter {
+		parts = append(parts, fmt.Sprintf("%s = $%d", k, i))
+		args = append(args, v)
+		i++
+	}
+	return baseQuery + " WHERE " + strings.Join(parts, " AND "), args
 }
