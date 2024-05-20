@@ -84,7 +84,7 @@ func (s *Service) oauth2SignupNewAccount(
 	ctx context.Context,
 	user oauth2.User,
 ) (*model2.Organisation, *model2.Account, error) {
-	acc, accountOrg, _, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
+	acc, accountOrg, loginProvider, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
 		Name:           user.Name,
 		FirstName:      user.FirstName,
 		LastName:       user.LastName,
@@ -97,7 +97,7 @@ func (s *Service) oauth2SignupNewAccount(
 		return nil, nil, fmt.Errorf("create owner account: %w", err)
 	}
 
-	if _, err := s.CreateAuthToken(ctx, accountRole.ID); err != nil {
+	if _, err := s.CreateAccessToken(ctx, accountRole.ID, loginProvider.ProviderUserID, DeviceFromCtx(ctx)); err != nil {
 		return nil, nil, fmt.Errorf("create auth token: %w", err)
 	}
 

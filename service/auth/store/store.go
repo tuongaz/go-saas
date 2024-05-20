@@ -104,9 +104,9 @@ func (s *Store) CreateAccessToken(ctx context.Context, input CreateAccessTokenIn
 		"account_role_id":  input.AccountRoleID,
 		"device":           input.Device,
 		"provider_user_id": input.ProviderUserID,
-		"created_at":       timer.NowString(),
-		"updated_at":       timer.NowString(),
-		"last_accessed_at": timer.NowString(),
+		"created_at":       timer.Now(),
+		"updated_at":       timer.Now(),
+		"last_accessed_at": timer.Now(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create access token: %w", err)
@@ -124,7 +124,7 @@ func (s *Store) UpdateRefreshToken(ctx context.Context, id string, refreshToken 
 	_, err := s.store.Collection(tableAccessToken).UpdateRecord(
 		ctx,
 		id,
-		store.Record{"refresh_token": refreshToken, "updated_at": timer.NowString()},
+		store.Record{"refresh_token": refreshToken, "updated_at": timer.Now()},
 	)
 	if err != nil {
 		return fmt.Errorf("update refresh token: %w", err)
@@ -195,7 +195,7 @@ func (s *Store) GetAccessTokenByRefreshToken(ctx context.Context, refreshToken s
 func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
 	mAccount *model.Account,
 	mOrg *model.Organisation,
-	mAuthProvider *model.LoginProvider,
+	mLoginProvider *model.LoginProvider,
 	mAccountRole *model.AccountRole,
 	err error,
 ) {
@@ -227,8 +227,8 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 			"password":                              input.Password,
 			"reset_password_code":                   "",
 			"reset_password_code_expired_timestamp": nil,
-			"created_at":                            timer.NowString(),
-			"updated_at":                            timer.NowString(),
+			"created_at":                            timer.Now(),
+			"updated_at":                            timer.Now(),
 		}
 		input.ProviderUserID = userRecord.Get("id").(string)
 	}
@@ -240,14 +240,14 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		"last_name":           input.LastName,
 		"avatar":              input.Avatar,
 		"communication_email": input.Email,
-		"created_at":          timer.NowString(),
-		"updated_at":          timer.NowString(),
+		"created_at":          timer.Now(),
+		"updated_at":          timer.Now(),
 	}
 
 	orgRecord := store.Record{
 		"id":         uid.ID(),
-		"created_at": timer.NowString(),
-		"updated_at": timer.NowString(),
+		"created_at": timer.Now(),
+		"updated_at": timer.Now(),
 	}
 
 	accRoleRecord := store.Record{
@@ -255,8 +255,8 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		"organisation_id": orgRecord.Get("id"),
 		"account_id":      accountRecord.Get("id"),
 		"role":            "OWNER",
-		"created_at":      timer.NowString(),
-		"updated_at":      timer.NowString(),
+		"created_at":      timer.Now(),
+		"updated_at":      timer.Now(),
 	}
 
 	loginProviderRecord := store.Record{
@@ -267,9 +267,9 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		"email":            input.Email,
 		"avatar":           input.Avatar,
 		"account_id":       accountRecord.Get("id"),
-		"last_login":       timer.NowString(),
-		"created_at":       timer.NowString(),
-		"updated_at":       timer.NowString(),
+		"last_login":       timer.Now(),
+		"created_at":       timer.Now(),
+		"updated_at":       timer.Now(),
 	}
 
 	if userRecord != nil {
@@ -300,8 +300,8 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		return nil, nil, nil, nil, fmt.Errorf("create account role: %w", err)
 	}
 
-	mAuthProvider = &model.LoginProvider{}
-	if err := loginProviderRecord.Decode(mAuthProvider); err != nil {
+	mAccountRole = &model.AccountRole{}
+	if err := accRoleRecord.Decode(mAccountRole); err != nil {
 		return nil, nil, nil, nil, err
 	}
 
@@ -309,16 +309,16 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		return nil, nil, nil, nil, fmt.Errorf("create auth provider: %w", err)
 	}
 
+	mLoginProvider = &model.LoginProvider{}
+	if err := loginProviderRecord.Decode(mLoginProvider); err != nil {
+		return nil, nil, nil, nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("commit tx: %w", err)
 	}
 
-	mAccountRole = &model.AccountRole{}
-	if err := accRoleRecord.Decode(mAccountRole); err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	return mAccount, mOrg, mAuthProvider, mAccountRole, nil
+	return mAccount, mOrg, mLoginProvider, mAccountRole, nil
 }
 
 func (s *Store) GetAccount(ctx context.Context, accountID string) (*model.Account, error) {

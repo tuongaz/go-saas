@@ -123,11 +123,13 @@ func (s *Service) GetAuthTokenByRefreshToken(ctx context.Context, refreshToken s
 	return authToken, nil
 }
 
-func (s *Service) CreateAuthToken(ctx context.Context, accountRoleID string) (*model.AccessToken, error) {
+func (s *Service) CreateAccessToken(ctx context.Context, accountRoleID, providerUserID, device string) (*model.AccessToken, error) {
 	refreshToken := uuid.New().String()
 	if _, err := s.store.CreateAccessToken(ctx, store.CreateAccessTokenInput{
-		AccountRoleID: accountRoleID,
-		RefreshToken:  refreshToken,
+		AccountRoleID:  accountRoleID,
+		RefreshToken:   refreshToken,
+		Device:         device,
+		ProviderUserID: providerUserID,
 	}); err != nil {
 		return nil, fmt.Errorf("create auth token: %w", err)
 	}
@@ -135,15 +137,6 @@ func (s *Service) CreateAuthToken(ctx context.Context, accountRoleID string) (*m
 	return &model.AccessToken{
 		RefreshToken: refreshToken,
 	}, nil
-}
-
-func (s *Service) NewToken(ctx context.Context, accountRole *model.AccountRole) (*model.AuthenticatedInfo, error) {
-	authToken, err := s.CreateAuthToken(ctx, accountRole.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.newAuthenticatedInfo(accountRole, authToken)
 }
 
 func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.AuthenticatedInfo, error) {

@@ -12,5 +12,5 @@ type LoginCredentialsUser struct {
 	ResetPasswordCode                 string    `json:"-" mapstructure:"reset_password_code"`
 	ResetPasswordCodeExpiredTimestamp int64     `json:"-" mapstructure:"reset_password_code_expired_timestamp"`
 	CreatedAt                         time.Time `json:"created_at" mapstructure:"created_at"`
-	UpdatedAt                         time.Time `json:"updated_at" mapstructure:"updated_at`
+	UpdatedAt                         time.Time `json:"updated_at" mapstructure:"updated_at"`
 }

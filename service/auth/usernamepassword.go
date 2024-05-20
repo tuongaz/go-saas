@@ -55,7 +55,7 @@ func (s *Service) signupUsernamePasswordAccount(
 		return nil, fmt.Errorf("create owner account: %w", err)
 	}
 
-	if _, err := s.CreateAuthToken(ctx, accountRole.ID); err != nil {
+	if _, err := s.CreateAccessToken(ctx, accountRole.ID, loginProvider.ProviderUserID, DeviceFromCtx(ctx)); err != nil {
 		return nil, fmt.Errorf("create auth token: %w", err)
 	}
 
