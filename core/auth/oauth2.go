@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/tuongaz/go-saas/config"
+	model2 "github.com/tuongaz/go-saas/core/auth/model"
+	"github.com/tuongaz/go-saas/core/auth/store"
 	"github.com/tuongaz/go-saas/pkg/log"
 	"github.com/tuongaz/go-saas/pkg/oauth2"
-	model2 "github.com/tuongaz/go-saas/service/auth/model"
-	"github.com/tuongaz/go-saas/service/auth/store"
 	store2 "github.com/tuongaz/go-saas/store"
 )
 
@@ -41,12 +42,10 @@ func (s *Service) oauth2Authenticate(
 	}
 
 	if newAccount {
-		if err := s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
+		s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
 			AccountID:      ownerAcc.ID,
 			OrganisationID: org.ID,
-		}); err != nil {
-			return nil, fmt.Errorf("notify account created: %w", err)
-		}
+		})
 	}
 
 	accountRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, org.ID, ownerAcc.ID)
@@ -57,7 +56,7 @@ func (s *Service) oauth2Authenticate(
 	return s.getAuthenticatedInfo(ctx, accountRole, user.UserID, DeviceFromCtx(ctx))
 }
 
-func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider OAuth2ProviderConfig, user oauth2.User) {
+func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider config.OAuth2ProviderConfig, user oauth2.User) {
 	ctx := r.Context()
 
 	authInfo, err := s.oauth2Authenticate(

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+
 	"github.com/tuongaz/go-saas/config"
 )
 
@@ -23,14 +24,15 @@ type Interface interface {
 	Collection(table string) *Collection
 	Exec(ctx context.Context, query string, args ...any) error
 	Tx(ctx context.Context) (*StoreTx, error)
+	Close() error
 }
 
 type Store struct {
 	db *sqlx.DB
 }
 
-func New(cfg config.Interface) (*Store, error) {
-	datasource := cfg.GetPostgresDataSource()
+func New(cfg *config.Config) (*Store, error) {
+	datasource := cfg.PostgresDataSource
 
 	db, err := sqlx.Connect("postgres", datasource)
 	if err != nil {
@@ -68,8 +70,10 @@ func (s *Store) Tx(ctx context.Context) (*StoreTx, error) {
 	}, nil
 }
 
-func (s *Store) Close() {
+func (s *Store) Close() error {
 	if s.db != nil {
-		_ = s.db.Close()
+		return s.db.Close()
 	}
+
+	return nil
 }

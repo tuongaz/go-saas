@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/tuongaz/go-saas/service/auth/model"
+	"github.com/tuongaz/go-saas/core/auth/model"
 )
 
 var _ Interface = (*SecretKeySigner)(nil)

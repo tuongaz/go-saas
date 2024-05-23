@@ -6,13 +6,14 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
+	"github.com/tuongaz/go-saas/core/auth/model"
 	"github.com/tuongaz/go-saas/pkg/timer"
 	"github.com/tuongaz/go-saas/pkg/uid"
-	"github.com/tuongaz/go-saas/service/auth/model"
 	"github.com/tuongaz/go-saas/store"
 )
 
-//go:embed schema/postgres.sql
+//go:embed postgres.sql
 var postgresSchema string
 
 const (

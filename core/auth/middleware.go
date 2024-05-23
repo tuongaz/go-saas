@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tuongaz/go-saas/core/auth/model"
 	"github.com/tuongaz/go-saas/pkg/apierror"
 	"github.com/tuongaz/go-saas/pkg/httputil"
-	"github.com/tuongaz/go-saas/service/auth/model"
 )
 
 const (
@@ -50,7 +50,7 @@ func (s *Service) NewDeviceMiddleware() func(next http.Handler) http.Handler {
 			if device == "" {
 				device = "unknown"
 			}
-			
+
 			ctx := r.Context()
 			ctx = deviceToCtx(ctx, device)
 			next.ServeHTTP(w, r.WithContext(ctx))

@@ -5,13 +5,14 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/pkg/oauth2"
 	"github.com/tuongaz/go-saas/pkg/oauth2/providers"
 
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
-func (s *Service) setupAPI(router *chi.Mux) {
+func (s *Service) SetupAPI(router *chi.Mux) {
 	authMiddleware := s.NewMiddleware()
 	deviceMiddleware := s.NewDeviceMiddleware()
 
@@ -130,7 +131,7 @@ func (s *Service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	httputil.HandleResponse(ctx, w, authInfo, err)
 }
 
-func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *OAuth2ProviderConfig, error) {
+func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *config.OAuth2ProviderConfig, error) {
 	providerName := chi.URLParam(r, "provider")
 	oauthProvider, ok := s.providers[providerName]
 	if !ok {

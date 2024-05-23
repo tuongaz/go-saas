@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tuongaz/go-saas/pkg/apierror"
-	model2 "github.com/tuongaz/go-saas/service/auth/model"
-	"github.com/tuongaz/go-saas/service/auth/store"
-	store2 "github.com/tuongaz/go-saas/store"
 	"golang.org/x/crypto/bcrypt"
+
+	model2 "github.com/tuongaz/go-saas/core/auth/model"
+	"github.com/tuongaz/go-saas/core/auth/store"
+	"github.com/tuongaz/go-saas/pkg/apierror"
+	store2 "github.com/tuongaz/go-saas/store"
 )
 
 type SignupInput struct {
@@ -59,12 +60,10 @@ func (s *Service) signupUsernamePasswordAccount(
 		return nil, fmt.Errorf("create auth token: %w", err)
 	}
 
-	if err := s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
+	s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
 		AccountID:      ownerAcc.ID,
 		OrganisationID: org.ID,
-	}); err != nil {
-		return nil, fmt.Errorf("notify account created: %w", err)
-	}
+	})
 
 	out, err := s.getAuthenticatedInfo(ctx, accountRole, loginProvider.ProviderUserID, DeviceFromCtx(ctx))
 	if err != nil {

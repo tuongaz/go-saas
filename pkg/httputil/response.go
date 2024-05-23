@@ -63,9 +63,14 @@ func (r *Response) JSON(body any, status ...int) {
 		case string:
 			_, _ = r.w.Write([]byte(b))
 		default:
-			_ = json.NewEncoder(r.w).Encode(body)
+			data, _ := json.Marshal(body)
+			_, _ = r.w.Write(data)
 		}
 	}
+}
+
+func (r *Response) NoContent() {
+	r.w.WriteHeader(http.StatusNoContent)
 }
 
 func HandleResponse(ctx context.Context, w http.ResponseWriter, out any, err error, status ...int) {

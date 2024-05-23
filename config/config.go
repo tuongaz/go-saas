@@ -12,23 +12,6 @@ const (
 	defaultEncryptionKey = "must-be-something-else-in-prod"
 )
 
-type Interface interface {
-	GetEnvironment() string
-	IsProduction() bool
-
-	GetEncryptionKey() string
-	GetServerPort() string
-
-	GetPostgresDataSource() string
-
-	GetCORSAllowedOrigins() []string
-	GetCORSAllowedHeaders() []string
-	GetCORSAllowedMethods() []string
-	GetCORSExposedHeaders() []string
-	GetCORSAllowCredentials() bool
-	GetCORSMaxAge() int
-}
-
 type Config struct {
 	Environment   string `mapstructure:"GOS_ENVIRONMENT"`
 	ServerPort    string `mapstructure:"GOS_SERVER_PORT" validate:"required,port"`
@@ -44,6 +27,12 @@ type Config struct {
 	CORSExposedHeaders   []string `mapstructure:"GOS_CORS_EXPOSED_HEADERS"`
 	CORSAllowCredentials bool     `mapstructure:"GOS_CORS_ALLOW_CREDENTIALS"`
 	CORSMaxAge           int      `mapstructure:"GOS_CORS_MAX_AGE"`
+
+	// Auth
+	JWTSigningSecret        string `mapstructure:"GOS_JWT_SIGNING_SECRET"`
+	JWTIssuer               string `mapstructure:"GOS_JWT_ISSUER"`
+	JWTTokenLifetimeSeconds uint   `mapstructure:"GOS_JWT_TOKEN_LIFETIME_SECONDS"`
+	Oauth2AuthProviders     map[string]OAuth2ProviderConfig
 }
 
 func SetDefault(key string, value any) {
@@ -69,11 +58,17 @@ func New() (*Config, error) {
 	SetDefault("GOS_CORS_ALLOW_CREDENTIALS", false)
 	SetDefault("GOS_CORS_MAX_AGE", 300)
 
+	SetDefault("GOS_JWT_SIGNING_SECRET", 300)
+	SetDefault("GOS_JWT_ISSUER", 300)
+	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 15*60) // 15 minutes
+
 	// Unmarshal environment variables into Config struct
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal config: %w", err)
 	}
+
+	cfg.Oauth2AuthProviders = make(map[string]OAuth2ProviderConfig)
 
 	if cfg.IsProduction() {
 		if cfg.EncryptionKey == defaultEncryptionKey {
@@ -84,46 +79,6 @@ func New() (*Config, error) {
 	return &cfg, nil
 }
 
-func (c *Config) GetEnvironment() string {
-	return c.Environment
-}
-
-func (c *Config) GetServerPort() string {
-	return c.ServerPort
-}
-
-func (c *Config) GetEncryptionKey() string {
-	return c.EncryptionKey
-}
-
-func (c *Config) GetPostgresDataSource() string {
-	return c.PostgresDataSource
-}
-
 func (c *Config) IsProduction() bool {
 	return c.Environment == EnvironmentProduction
-}
-
-func (c *Config) GetCORSAllowedOrigins() []string {
-	return c.CORSAllowedOrigins
-}
-
-func (c *Config) GetCORSAllowedHeaders() []string {
-	return c.CORSAllowedHeaders
-}
-
-func (c *Config) GetCORSAllowedMethods() []string {
-	return c.CORSAllowedMethods
-}
-
-func (c *Config) GetCORSExposedHeaders() []string {
-	return c.CORSExposedHeaders
-}
-
-func (c *Config) GetCORSAllowCredentials() bool {
-	return c.CORSAllowCredentials
-}
-
-func (c *Config) GetCORSMaxAge() int {
-	return c.CORSMaxAge
 }

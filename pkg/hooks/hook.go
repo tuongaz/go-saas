@@ -4,8 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
-
 	"github.com/tuongaz/go-saas/pkg/log"
 	"github.com/tuongaz/go-saas/pkg/uid"
 )
@@ -45,7 +43,7 @@ func (h *Hook[T]) AddRsync(handler Handler[T]) string {
 	return id
 }
 
-func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handler[T]) error {
+func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handler[T]) {
 	h.mu.RLock()
 	handlers := make([]*handlerPair[T], 0, len(h.handlers))
 	handlers = append(handlers, h.handlers...)
@@ -53,12 +51,6 @@ func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handle
 		handlers = append(handlers, &handlerPair[T]{uid.ID(), handler})
 	}
 	h.mu.RUnlock()
-
-	for _, handler := range handlers {
-		if err := handler.handler(ctx, event); err != nil {
-			return errors.Wrap(err, "failed to trigger hook")
-		}
-	}
 
 	for _, handler := range h.asyncHandlers {
 		go func(handler *handlerPair[T]) {
@@ -68,5 +60,9 @@ func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handle
 		}(handler)
 	}
 
-	return nil
+	for _, handler := range handlers {
+		if err := handler.handler(ctx, event); err != nil {
+			log.ErrorContext(ctx, "failed to trigger hook", log.ErrorAttr(err))
+		}
+	}
 }

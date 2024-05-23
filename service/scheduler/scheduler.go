@@ -33,6 +33,14 @@ func New() (*Scheduler, error) {
 	}, nil
 }
 
+func MustNew() *Scheduler {
+	s, err := New()
+	if err != nil {
+		panic(fmt.Errorf("failed to create a new scheduler: %w", err))
+	}
+	return s
+}
+
 func (s *Scheduler) Start() {
 	s.scheduler.Start()
 }

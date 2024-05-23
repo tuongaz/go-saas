@@ -1,8 +1,7 @@
-package app
+package core
 
 import (
 	"github.com/tuongaz/go-saas/pkg/hooks"
-	"github.com/tuongaz/go-saas/server"
 )
 
 type OnBeforeBootstrapEvent struct {
@@ -14,15 +13,14 @@ type OnAfterBootstrapEvent struct {
 }
 
 type OnBeforeServeEvent struct {
-	App    *App
-	Server *server.Server
+	App *App
 }
 
 type OnTerminateEvent struct {
 	App *App
 }
 
-type OnDatabaseBootstrap struct {
+type OnDatabaseBootstrapEvent struct {
 	App *App
 }
 
@@ -42,6 +40,6 @@ func (a *App) OnTerminate() *hooks.Hook[*OnTerminateEvent] {
 	return a.onTerminate
 }
 
-func (a *App) OnDatabaseBootstrap() *hooks.Hook[*OnDatabaseBootstrap] {
+func (a *App) OnDatabaseBootstrap() *hooks.Hook[*OnDatabaseBootstrapEvent] {
 	return a.onDatabaseBootstrap
 }

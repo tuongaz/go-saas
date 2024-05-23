@@ -7,102 +7,58 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/tuongaz/go-saas/app"
+
+	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/core/auth/model"
+	"github.com/tuongaz/go-saas/core/auth/signer"
+	"github.com/tuongaz/go-saas/core/auth/store"
 	"github.com/tuongaz/go-saas/pkg/encrypt"
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	"github.com/tuongaz/go-saas/pkg/log"
-	"github.com/tuongaz/go-saas/service/auth/model"
-	"github.com/tuongaz/go-saas/service/auth/signer"
-	"github.com/tuongaz/go-saas/service/auth/store"
+	store2 "github.com/tuongaz/go-saas/store"
 )
 
 type Service struct {
-	app                  app.Interface
-	store                store.Interface
-	signer               signer.Interface
-	encryptor            encrypt.Interface
-	tokenLifeTimeMinutes time.Duration
-	jwtIssuer            string
-	redirectURL          string
-	providers            map[string]OAuth2ProviderConfig
-	onAccountCreated     *hooks.Hook[*OnAccountCreatedEvent]
+	store            store.Interface
+	signer           signer.Interface
+	encryptor        encrypt.Interface
+	tokenLifeTime    time.Duration
+	jwtIssuer        string
+	redirectURL      string
+	providers        map[string]config.OAuth2ProviderConfig
+	onAccountCreated *hooks.Hook[*OnAccountCreatedEvent]
 }
 
-type OAuth2ProviderConfig struct {
-	Name         string
-	ClientID     string
-	ClientSecret string
-	Scopes       []string
-	RedirectURL  string
-	FailureURL   string
-	SuccessURL   string
-}
-
-type Config struct {
-	JWTSigningSecret        string
-	JWTIssuer               string
-	JWTTokenLifetimeMinutes uint
-	Providers               []OAuth2ProviderConfig
-}
-
-func WithJWTTokenLifetimeMinutes(minutes uint) func(*Config) {
-	return func(cfg *Config) {
-		cfg.JWTTokenLifetimeMinutes = minutes
-	}
-}
-
-func WithJWTSigningSecret(secret string) func(*Config) {
-	return func(cfg *Config) {
-		cfg.JWTSigningSecret = secret
-	}
-}
-
-func WithJWTIssuer(issuer string) func(*Config) {
-	return func(cfg *Config) {
-		cfg.JWTIssuer = issuer
-	}
-}
-
-func WithOauth2Provider(providers ...OAuth2ProviderConfig) func(*Config) {
-	return func(cfg *Config) {
-		cfg.Providers = append(cfg.Providers, providers...)
-	}
-}
-
-func Register(appInstance app.Interface, opts ...func(*Config)) *Service {
-	cfg := &Config{
-		JWTTokenLifetimeMinutes: 30,
-		JWTSigningSecret:        "signing-secret-please-change-me",
-		JWTIssuer:               "go-saas-issuer",
-	}
-
-	for _, opt := range opts {
-		opt(cfg)
-	}
-
-	providers := make(map[string]OAuth2ProviderConfig)
-	for _, p := range cfg.Providers {
-		providers[p.Name] = p
+func New(cfg *config.Config, st store2.Interface) (*Service, error) {
+	authStore, err := store.New(st)
+	if err != nil {
+		return nil, err
 	}
 
 	authSrv := &Service{
-		app:                  appInstance,
-		signer:               signer.NewHS256Signer([]byte(cfg.JWTSigningSecret)),
-		encryptor:            encrypt.New(appInstance.Config().GetEncryptionKey()),
-		jwtIssuer:            cfg.JWTIssuer,
-		tokenLifeTimeMinutes: time.Duration(cfg.JWTTokenLifetimeMinutes) * time.Minute,
-		providers:            providers,
-		onAccountCreated:     &hooks.Hook[*OnAccountCreatedEvent]{},
+		signer:           signer.NewHS256Signer([]byte(cfg.JWTSigningSecret)),
+		encryptor:        encrypt.New(cfg.EncryptionKey),
+		jwtIssuer:        cfg.JWTIssuer,
+		tokenLifeTime:    time.Duration(cfg.JWTTokenLifetimeSeconds) * time.Second,
+		providers:        cfg.Oauth2AuthProviders,
+		onAccountCreated: &hooks.Hook[*OnAccountCreatedEvent]{},
+		store:            authStore,
 	}
 
-	appInstance.OnAfterBootstrap().Add(func(ctx context.Context, e *app.OnAfterBootstrapEvent) error {
-		if err := authSrv.bootstrap(); err != nil {
-			return fmt.Errorf("auth service bootstrap: %w", err)
-		}
-		return nil
-	})
+	return authSrv, nil
+}
 
-	return authSrv
+func (s *Service) Store() store.Interface {
+	return s.store
+}
+
+func (s *Service) GetAccount(ctx context.Context, accountID string) (*model.Account, error) {
+	account, err := s.store.GetAccount(ctx, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("get account by id: %w", err)
+	}
+
+	return account, nil
 }
 
 func (s *Service) GetAccountRole(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error) {
@@ -171,23 +127,6 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	return info, err
 }
 
-func (s *Service) bootstrap() error {
-	authStore, err := store.New(s.app.Store())
-	if err != nil {
-		return fmt.Errorf("new auth store: %w", err)
-	}
-	s.store = authStore
-
-	s.app.OnBeforeServe().Add(func(ctx context.Context, e *app.OnBeforeServeEvent) error {
-		rootRouter := e.Server.Router()
-		s.setupAPI(rootRouter)
-
-		return nil
-	})
-
-	return nil
-}
-
 func (s *Service) newAuthenticatedInfo(
 	accountRole *model.AccountRole,
 	authToken *model.AccessToken,
@@ -200,7 +139,7 @@ func (s *Service) newAuthenticatedInfo(
 			Audience: jwt.ClaimStrings{
 				s.jwtIssuer,
 			},
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.tokenLifeTimeMinutes)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.tokenLifeTime)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ID:        uuid.New().String(),
 		},
@@ -215,7 +154,7 @@ func (s *Service) newAuthenticatedInfo(
 		RefreshToken: authToken.RefreshToken,
 		Type:         "Bearer",
 		Token:        jwtToken,
-		ExpiresIn:    int64(s.tokenLifeTimeMinutes.Seconds()),
+		ExpiresIn:    int64(s.tokenLifeTime.Seconds()),
 	}, nil
 }
 

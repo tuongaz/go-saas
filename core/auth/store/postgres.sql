@@ -93,5 +93,3 @@ CREATE TABLE IF NOT EXISTS access_token
 
 CREATE UNIQUE INDEX IF NOT EXISTS auth_token_refresh_token_key
     ON access_token (refresh_token);
-CREATE UNIQUE INDEX IF NOT EXISTS unique_provider_user_device_role
-    ON access_token (provider_user_id, account_role_id, device);

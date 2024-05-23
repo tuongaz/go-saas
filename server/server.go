@@ -12,23 +12,23 @@ import (
 )
 
 type Server struct {
-	config  config.Interface
+	config  *config.Config
 	r       *chi.Mux
 	baseURL string
 }
 
-func New(cfg config.Interface) *Server {
+func New(cfg *config.Config) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.GetCORSAllowedOrigins(),
-		AllowedHeaders:   cfg.GetCORSAllowedHeaders(),
-		AllowedMethods:   cfg.GetCORSAllowedMethods(),
-		ExposedHeaders:   cfg.GetCORSExposedHeaders(),
-		AllowCredentials: cfg.GetCORSAllowCredentials(),
-		MaxAge:           cfg.GetCORSMaxAge(),
+		AllowedOrigins:   cfg.CORSAllowedOrigins,
+		AllowedHeaders:   cfg.CORSAllowedHeaders,
+		AllowedMethods:   cfg.CORSAllowedMethods,
+		ExposedHeaders:   cfg.CORSExposedHeaders,
+		AllowCredentials: cfg.CORSAllowCredentials,
+		MaxAge:           cfg.CORSMaxAge,
 	}))
 
 	return &Server{
@@ -42,8 +42,8 @@ func (s *Server) Router() *chi.Mux {
 }
 
 func (s *Server) Serve() error {
-	fmt.Printf("Server started at %s\n", ":"+s.config.GetServerPort())
-	if err := http.ListenAndServe(":"+s.config.GetServerPort(), s.r); err != nil {
+	fmt.Printf("Server started at %s\n", ":"+s.config.ServerPort)
+	if err := http.ListenAndServe(":"+s.config.ServerPort, s.r); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}
 
