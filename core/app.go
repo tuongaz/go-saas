@@ -41,7 +41,7 @@ type AppInterface interface {
 	OnBeforeServe() *hooks.Hook[*OnBeforeServeEvent]
 
 	// OnDatabaseBootstrap returns the hook that is triggered when the database is bootstrapped.
-	OnDatabaseBootstrap() *hooks.Hook[*OnDatabaseBootstrapEvent]
+	OnDatabaseReady() *hooks.Hook[*OnDatabaseReadyEvent]
 
 	// Start the app
 	Start() error
@@ -51,16 +51,16 @@ type AppInterface interface {
 }
 
 type App struct {
-	cfg                 *config.Config
-	onBeforeBootstrap   *hooks.Hook[*OnBeforeBootstrapEvent]
-	onAfterBootstrap    *hooks.Hook[*OnAfterBootstrapEvent]
-	onBeforeServe       *hooks.Hook[*OnBeforeServeEvent]
-	onTerminate         *hooks.Hook[*OnTerminateEvent]
-	onDatabaseBootstrap *hooks.Hook[*OnDatabaseBootstrapEvent]
-	store               store.Interface
-	auth                *auth.Service
-	server              *server.Server
-	encryptor           encrypt.Interface
+	cfg               *config.Config
+	onBeforeBootstrap *hooks.Hook[*OnBeforeBootstrapEvent]
+	onAfterBootstrap  *hooks.Hook[*OnAfterBootstrapEvent]
+	onBeforeServe     *hooks.Hook[*OnBeforeServeEvent]
+	onTerminate       *hooks.Hook[*OnTerminateEvent]
+	onDatabaseReady   *hooks.Hook[*OnDatabaseReadyEvent]
+	store             store.Interface
+	auth              *auth.Service
+	server            *server.Server
+	encryptor         encrypt.Interface
 }
 
 func New(opts ...func(cfg *config.Config)) (*App, error) {
@@ -76,13 +76,13 @@ func New(opts ...func(cfg *config.Config)) (*App, error) {
 	encryptor := encrypt.New(cfg.EncryptionKey)
 
 	return &App{
-		cfg:                 cfg,
-		onBeforeBootstrap:   &hooks.Hook[*OnBeforeBootstrapEvent]{},
-		onAfterBootstrap:    &hooks.Hook[*OnAfterBootstrapEvent]{},
-		onBeforeServe:       &hooks.Hook[*OnBeforeServeEvent]{},
-		onTerminate:         &hooks.Hook[*OnTerminateEvent]{},
-		onDatabaseBootstrap: &hooks.Hook[*OnDatabaseBootstrapEvent]{},
-		encryptor:           encryptor,
+		cfg:               cfg,
+		onBeforeBootstrap: &hooks.Hook[*OnBeforeBootstrapEvent]{},
+		onAfterBootstrap:  &hooks.Hook[*OnAfterBootstrapEvent]{},
+		onBeforeServe:     &hooks.Hook[*OnBeforeServeEvent]{},
+		onTerminate:       &hooks.Hook[*OnTerminateEvent]{},
+		onDatabaseReady:   &hooks.Hook[*OnDatabaseReadyEvent]{},
+		encryptor:         encryptor,
 	}, nil
 }
 
@@ -130,12 +130,14 @@ func (a *App) Start() error {
 	a.auth = authSrv
 	a.auth.SetupAPI(a.server.Router())
 
-	a.OnBeforeServe().Trigger(
+	if err := a.OnBeforeServe().Trigger(
 		ctx,
 		&OnBeforeServeEvent{
 			App: a,
 		},
-	)
+	); err != nil {
+		return fmt.Errorf("trigger hooks on before serve event: %w", err)
+	}
 
 	a.server.PrintRoutes()
 
@@ -158,13 +160,15 @@ func (a *App) Start() error {
 
 	<-done
 
-	a.OnTerminate().Trigger(
+	if err := a.OnTerminate().Trigger(
 		ctx,
 		&OnTerminateEvent{App: a},
 		func(ctx context.Context, e *OnTerminateEvent) error {
 			return e.App.Shutdown()
 		},
-	)
+	); err != nil {
+		return fmt.Errorf("trigger hooks on terminate event: %w", err)
+	}
 
 	return nil
 }
@@ -176,9 +180,11 @@ func (a *App) Shutdown() error {
 }
 
 func (a *App) bootstrap(ctx context.Context) error {
-	a.OnBeforeBootstrap().Trigger(ctx, &OnBeforeBootstrapEvent{
+	if err := a.OnBeforeBootstrap().Trigger(ctx, &OnBeforeBootstrapEvent{
 		App: a,
-	})
+	}); err != nil {
+		return fmt.Errorf("before bootstrap: %w", err)
+	}
 
 	log.Info("bootstrapping database")
 	st, err := store.New(a.Config())
@@ -187,9 +193,11 @@ func (a *App) bootstrap(ctx context.Context) error {
 	}
 	a.store = st
 
-	a.OnDatabaseBootstrap().Trigger(ctx, &OnDatabaseBootstrapEvent{
+	if err := a.OnDatabaseReady().Trigger(ctx, &OnDatabaseReadyEvent{
 		App: a,
-	})
+	}); err != nil {
+		return fmt.Errorf("database bootstrap: %w", err)
+	}
 
 	a.OnTerminate().Add(func(ctx context.Context, e *OnTerminateEvent) error {
 		a.store.Close()
@@ -197,9 +205,11 @@ func (a *App) bootstrap(ctx context.Context) error {
 		return nil
 	})
 
-	a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{
+	if err := a.OnAfterBootstrap().Trigger(ctx, &OnAfterBootstrapEvent{
 		App: a,
-	})
+	}); err != nil {
+		return fmt.Errorf("after bootstrap: %w", err)
+	}
 
 	return nil
 }

@@ -60,10 +60,12 @@ func (s *Service) signupUsernamePasswordAccount(
 		return nil, fmt.Errorf("create auth token: %w", err)
 	}
 
-	s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
+	if err := s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
 		AccountID:      ownerAcc.ID,
 		OrganisationID: org.ID,
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("trigger on account created: %w", err)
+	}
 
 	out, err := s.getAuthenticatedInfo(ctx, accountRole, loginProvider.ProviderUserID, DeviceFromCtx(ctx))
 	if err != nil {

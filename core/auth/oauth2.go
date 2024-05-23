@@ -42,10 +42,12 @@ func (s *Service) oauth2Authenticate(
 	}
 
 	if newAccount {
-		s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
+		if err := s.OnAccountCreated().Trigger(ctx, &OnAccountCreatedEvent{
 			AccountID:      ownerAcc.ID,
 			OrganisationID: org.ID,
-		})
+		}); err != nil {
+			return nil, fmt.Errorf("trigger on account created: %w", err)
+		}
 	}
 
 	accountRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, org.ID, ownerAcc.ID)

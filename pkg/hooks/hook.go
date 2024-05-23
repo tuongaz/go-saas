@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/tuongaz/go-saas/pkg/log"
@@ -43,7 +44,7 @@ func (h *Hook[T]) AddRsync(handler Handler[T]) string {
 	return id
 }
 
-func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handler[T]) {
+func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handler[T]) error {
 	h.mu.RLock()
 	handlers := make([]*handlerPair[T], 0, len(h.handlers))
 	handlers = append(handlers, h.handlers...)
@@ -62,7 +63,9 @@ func (h *Hook[T]) Trigger(ctx context.Context, event T, oneOffHandlers ...Handle
 
 	for _, handler := range handlers {
 		if err := handler.handler(ctx, event); err != nil {
-			log.ErrorContext(ctx, "failed to trigger hook", log.ErrorAttr(err))
+			return fmt.Errorf("failed to trigger hook: %w", err)
 		}
 	}
+
+	return nil
 }
