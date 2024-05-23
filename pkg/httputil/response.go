@@ -19,17 +19,6 @@ func (r *Response) Error(ctx context.Context, err error) {
 	r.JSON(map[string]string{"error": "internal server error"}, http.StatusInternalServerError)
 }
 
-func (r *Response) Response(body []byte, statuses ...int) {
-	if len(statuses) > 0 {
-		r.w.WriteHeader(statuses[0])
-	} else {
-		r.w.WriteHeader(http.StatusOK)
-	}
-	if body != nil {
-		_, _ = r.w.Write(body)
-	}
-}
-
 func (r *Response) Unauthorized(ctx context.Context, err error) {
 	r.JSON(map[string]string{"error": err.Error()}, http.StatusUnauthorized)
 }
