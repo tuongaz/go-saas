@@ -38,11 +38,9 @@ func MustNew() *Scheduler {
 	if err != nil {
 		panic(fmt.Errorf("failed to create a new scheduler: %w", err))
 	}
-	return s
-}
-
-func (s *Scheduler) Start() {
 	s.scheduler.Start()
+	
+	return s
 }
 
 // RemoveJob removes a job by its id
