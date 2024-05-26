@@ -16,23 +16,7 @@ type Response struct {
 
 func (r *Response) Error(ctx context.Context, err error) {
 	log.Default().ErrorContext(ctx, "internal server error", log.ErrorAttr(err))
-	r.JSON(map[string]string{"error": "internal server error"}, http.StatusInternalServerError)
-}
-
-func (r *Response) Unauthorized(ctx context.Context, err error) {
-	r.JSON(map[string]string{"error": err.Error()}, http.StatusUnauthorized)
-}
-
-func (r *Response) Forbidden(ctx context.Context, err error) {
-	r.JSON(map[string]string{"error": err.Error()}, http.StatusForbidden)
-}
-
-func (r *Response) NotFound(ctx context.Context, err error) {
-	r.JSON(map[string]string{"error": err.Error()}, http.StatusNotFound)
-}
-
-func (r *Response) BadRequest(ctx context.Context, err error) {
-	r.JSON(map[string]string{"error": err.Error()}, http.StatusBadRequest)
+	r.JSON(map[string]string{"message": "internal server error"}, http.StatusInternalServerError)
 }
 
 func (r *Response) JSON(body any, status ...int) {

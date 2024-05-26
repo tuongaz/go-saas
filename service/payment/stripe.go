@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -69,7 +68,8 @@ func (s *Service) CreateStripePaymentMethodHandler(w http.ResponseWriter, r *htt
 		Customer: stripe.String(stripeCustomerID),
 	}
 	if _, err = paymentmethod.Attach(input.PaymentMethodID, params); err != nil {
-		log.Fatalf("PaymentMethod.Attach failed: %v", err)
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
 	}
 
 	pm, err := s.store.CreatePaymentMethod(r.Context(), store.CreatePaymentMethodInput{
