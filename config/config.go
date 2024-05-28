@@ -33,6 +33,9 @@ type Config struct {
 	JWTIssuer               string `mapstructure:"GOS_JWT_ISSUER"`
 	JWTTokenLifetimeSeconds uint   `mapstructure:"GOS_JWT_TOKEN_LIFETIME_SECONDS"`
 	Oauth2AuthProviders     map[string]OAuth2ProviderConfig
+
+	// Emailer
+	ResendAPIKey string `mapstructure:"GOS_RESEND_API_KEY"`
 }
 
 func SetDefault(key string, value any) {
@@ -62,6 +65,8 @@ func New() (*Config, error) {
 	SetDefault("GOS_JWT_ISSUER", 300)
 	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 15*60) // 15 minutes
 
+	SetDefault("GOS_RESEND_API_KEY", "")
+	
 	// Unmarshal environment variables into Config struct
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {

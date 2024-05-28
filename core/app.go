@@ -9,13 +9,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
-
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/core/auth"
 	"github.com/tuongaz/go-saas/pkg/encrypt"
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	"github.com/tuongaz/go-saas/pkg/log"
 	"github.com/tuongaz/go-saas/server"
+	"github.com/tuongaz/go-saas/service/emailer"
 	"github.com/tuongaz/go-saas/store"
 )
 
@@ -25,6 +25,10 @@ type AppInterface interface {
 	Store() store.Interface
 
 	Auth() *auth.Service
+
+	Emailer() emailer.Interface
+
+	SetEmailer(emailer emailer.Interface)
 
 	Config() *config.Config
 
@@ -59,6 +63,7 @@ type App struct {
 	onDatabaseReady   *hooks.Hook[*OnDatabaseReadyEvent]
 	store             store.Interface
 	auth              *auth.Service
+	emailer           emailer.Interface
 	server            *server.Server
 	encryptor         encrypt.Interface
 }
@@ -75,6 +80,11 @@ func New(opts ...func(cfg *config.Config)) (*App, error) {
 
 	encryptor := encrypt.New(cfg.EncryptionKey)
 
+	var emailService emailer.Interface
+	if cfg.ResendAPIKey != "" {
+		emailService = emailer.New(cfg.ResendAPIKey)
+	}
+
 	return &App{
 		cfg:               cfg,
 		onBeforeBootstrap: &hooks.Hook[*OnBeforeBootstrapEvent]{},
@@ -83,6 +93,7 @@ func New(opts ...func(cfg *config.Config)) (*App, error) {
 		onTerminate:       &hooks.Hook[*OnTerminateEvent]{},
 		onDatabaseReady:   &hooks.Hook[*OnDatabaseReadyEvent]{},
 		encryptor:         encryptor,
+		emailer:           emailService,
 	}, nil
 }
 
@@ -92,6 +103,14 @@ func (a *App) Store() store.Interface {
 
 func (a *App) Auth() *auth.Service {
 	return a.auth
+}
+
+func (a *App) Emailer() emailer.Interface {
+	return a.emailer
+}
+
+func (a *App) SetEmailer(emailer emailer.Interface) {
+	a.emailer = emailer
 }
 
 func (a *App) Config() *config.Config {
@@ -129,6 +148,11 @@ func (a *App) Start() error {
 
 	a.auth = authSrv
 	a.auth.SetupAPI(a.server.Router())
+
+	// Validate everything before starting the service
+	if err := a.validate(); err != nil {
+		return fmt.Errorf("validate app: %w", err)
+	}
 
 	if err := a.OnBeforeServe().Trigger(
 		ctx,
@@ -209,6 +233,14 @@ func (a *App) bootstrap(ctx context.Context) error {
 		App: a,
 	}); err != nil {
 		return fmt.Errorf("after bootstrap: %w", err)
+	}
+
+	return nil
+}
+
+func (a *App) validate() error {
+	if a.emailer == nil {
+		return fmt.Errorf("email service is not set")
 	}
 
 	return nil

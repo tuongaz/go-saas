@@ -11,10 +11,12 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
-	github.com/pkg/errors v0.9.1
+	github.com/resend/resend-go/v2 v2.6.0
+	github.com/samber/lo v1.39.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.9.0
+	github.com/stripe/stripe-go/v78 v78.8.0
 	golang.org/x/crypto v0.20.0
 	golang.org/x/oauth2 v0.12.0
 )
@@ -37,7 +39,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.3.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/samber/lo v1.39.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.10.0 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
