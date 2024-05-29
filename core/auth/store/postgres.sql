@@ -13,6 +13,25 @@ CREATE TABLE IF NOT EXISTS login_credentials_user
 CREATE UNIQUE INDEX IF NOT EXISTS login_credentials_user_email_unq
     ON login_credentials_user (email);
 
+
+
+CREATE TABLE IF NOT EXISTS login_credentials_user_reset_password
+(
+    id         VARCHAR PRIMARY KEY,
+    code       VARCHAR                  NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    receipt    VARCHAR,
+    user_id    VARCHAR                  NOT NULL
+        CONSTRAINT login_credentials_user_reset_password_user_id_fk
+            REFERENCES login_credentials_user
+            ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS login_credentials_user_reset_password_code_unq
+    ON login_credentials_user_reset_password (code);
+
+
 CREATE TABLE IF NOT EXISTS account
 (
     id                  VARCHAR PRIMARY KEY,

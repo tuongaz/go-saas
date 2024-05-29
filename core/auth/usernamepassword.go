@@ -1,16 +1,20 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"strings"
 
+	"github.com/tuongaz/go-saas/pkg/uid"
+	"github.com/tuongaz/go-saas/service/emailer"
 	"golang.org/x/crypto/bcrypt"
 
 	model2 "github.com/tuongaz/go-saas/core/auth/model"
 	"github.com/tuongaz/go-saas/core/auth/store"
 	"github.com/tuongaz/go-saas/pkg/apierror"
-	store2 "github.com/tuongaz/go-saas/store"
+	coreStore "github.com/tuongaz/go-saas/store"
 )
 
 type SignupInput struct {
@@ -21,6 +25,15 @@ type SignupInput struct {
 
 type LoginInput struct {
 	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type ResetPasswordRequestInput struct {
+	Email string `json:"email"`
+}
+
+type ResetPasswordConfirmInput struct {
+	Code     string `json:"code"`
 	Password string `json:"password"`
 }
 
@@ -75,13 +88,106 @@ func (s *Service) signupUsernamePasswordAccount(
 	return out, nil
 }
 
+func (s *Service) resetPasswordConfirm(ctx context.Context, input *ResetPasswordConfirmInput) error {
+	req, err := s.store.GetResetPasswordRequest(ctx, input.Code)
+	if err != nil {
+		if coreStore.IsNotFoundError(err) {
+			return apierror.NewValidationError("reset password request not found", nil)
+		}
+
+		return fmt.Errorf("auth: reset password confirm - GetResetPasswordRequest: %w", err)
+	}
+
+	if req.IsExpired(s.cfg.ResetPasswordRequestExpiryMinutes) {
+		return apierror.NewValidationError("reset password request expired", nil)
+	}
+
+	hashedPw, err := s.hashPassword(input.Password)
+	if err != nil {
+		return fmt.Errorf("auth: reset password confirm - hash password: %w", err)
+	}
+
+	if err := s.store.UpdateLoginCredentialsUserPassword(ctx, req.UserID, hashedPw); err != nil {
+		return fmt.Errorf("auth: reset password confirm - UpdateLoginCredentialsUserPassword: %w", err)
+	}
+
+	if err := s.store.DeleteResetPasswordRequest(ctx, req.ID); err != nil {
+		return fmt.Errorf("auth: reset password confirm - DeleteResetPasswordRequest: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) resetPasswordRequest(ctx context.Context, input *ResetPasswordRequestInput) error {
+	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, input.Email)
+	if err != nil {
+		if !coreStore.IsNotFoundError(err) {
+			return fmt.Errorf("auth: reset password request - GetLoginCredentialsUserByEmail: %w", err)
+		}
+
+		// yes, we don't want to return error to frontend if email not found
+		return nil
+	}
+
+	pwRequest, err := s.store.CreateResetPasswordRequest(ctx, user.ID, uid.ID())
+	if err != nil {
+		return fmt.Errorf("auth: reset password request - CreateResetPasswordRequest: %w", err)
+	}
+
+	// send email with code
+	const emailTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Your Password</title>
+</head>
+<body>
+    <p>Hi {{.name}},</p>
+    <p>You requested to reset your password. Please click the link below to reset it:</p>
+    <p><a href="{{.reset_link}}">Reset Password</a></p>
+    <p>If you didn't request a password reset, please ignore this email.</p>
+    <p>Thanks,</p>
+    <p>The Team</p>
+</body>
+</html>
+`
+	tmpl, err := template.New("resetPasswordEmail").Parse(emailTemplate)
+	if err != nil {
+		return err
+	}
+
+	var body bytes.Buffer
+	if err := tmpl.Execute(&body, map[string]any{
+		"name":       user.Name,
+		"reset_link": fmt.Sprintf("%s/auth/reset-password-confirm?code=%s", s.cfg.BaseURL, pwRequest.Code),
+	}); err != nil {
+		return fmt.Errorf("auth: reset password request - execute email template: %w", err)
+	}
+
+	out, err := s.emailer.Send(ctx, emailer.SendEmailInput{
+		//From:    s.cfg.EmailFrom,
+		To:      []string{user.Email},
+		HTML:    body.String(),
+		Subject: "Reset Your Password",
+	})
+	if err != nil {
+		return fmt.Errorf("auth: reset password request - send email: %w", err)
+	}
+
+	if err := s.store.UpdateResetPasswordReceipt(ctx, pwRequest.ID, out.ID); err != nil {
+		return fmt.Errorf("auth: reset password request - UpdateResetPasswordReceipt: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) loginUsernamePasswordAccount(
 	ctx context.Context,
 	input *LoginInput,
 ) (*model2.AuthenticatedInfo, error) {
 	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, input.Email)
 	if err != nil {
-		if store2.IsNotFoundError(err) {
+		if coreStore.IsNotFoundError(err) {
 			return nil, apierror.NewUnauthorizedErr("invalid credentials", nil)
 		}
 

@@ -82,7 +82,9 @@ func New(opts ...func(cfg *config.Config)) (*App, error) {
 
 	var emailService emailer.Interface
 	if cfg.ResendAPIKey != "" {
-		emailService = emailer.New(cfg.ResendAPIKey)
+		emailService = emailer.NewResend(cfg.ResendAPIKey)
+	} else {
+		return nil, fmt.Errorf("email service is not set")
 	}
 
 	return &App{
@@ -141,7 +143,7 @@ func (a *App) Start() error {
 
 	a.server = server.New(a.Config())
 
-	authSrv, err := auth.New(a.Config(), a.store)
+	authSrv, err := auth.New(a.Config(), a.Emailer(), a.store)
 	if err != nil {
 		return fmt.Errorf("new auth service: %w", err)
 	}

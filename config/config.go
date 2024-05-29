@@ -14,6 +14,7 @@ const (
 
 type Config struct {
 	Environment   string `mapstructure:"GOS_ENVIRONMENT"`
+	BaseURL       string `mapstructure:"GOS_BASE_URL"`
 	ServerPort    string `mapstructure:"GOS_SERVER_PORT" validate:"required,port"`
 	EncryptionKey string `mapstructure:"GOS_ENCRYPTION_KEY"`
 
@@ -29,13 +30,15 @@ type Config struct {
 	CORSMaxAge           int      `mapstructure:"GOS_CORS_MAX_AGE"`
 
 	// Auth
-	JWTSigningSecret        string `mapstructure:"GOS_JWT_SIGNING_SECRET"`
-	JWTIssuer               string `mapstructure:"GOS_JWT_ISSUER"`
-	JWTTokenLifetimeSeconds uint   `mapstructure:"GOS_JWT_TOKEN_LIFETIME_SECONDS"`
-	Oauth2AuthProviders     map[string]OAuth2ProviderConfig
+	JWTSigningSecret                  string `mapstructure:"GOS_JWT_SIGNING_SECRET"`
+	JWTIssuer                         string `mapstructure:"GOS_JWT_ISSUER"`
+	JWTTokenLifetimeSeconds           uint   `mapstructure:"GOS_JWT_TOKEN_LIFETIME_SECONDS"`
+	Oauth2AuthProviders               map[string]OAuth2ProviderConfig
+	ResetPasswordRequestExpiryMinutes uint `mapstructure:"GOS_RESET_PASSWORD_REQUEST_EXPIRY_MINUTES"`
 
 	// Emailer
 	ResendAPIKey string `mapstructure:"GOS_RESEND_API_KEY"`
+	EmailFrom    string `mapstructure:"GOS_EMAIL_FROM"`
 }
 
 func SetDefault(key string, value any) {
@@ -48,10 +51,12 @@ func New() (*Config, error) {
 	// Set default values
 	SetDefault("GOS_ENVIRONMENT", "")
 	SetDefault("GOS_SERVER_PORT", "8080")
+	SetDefault("GOS_BASE_URL", "http://localhost:5173")
 	SetDefault("GOS_ENCRYPTION_KEY", defaultEncryptionKey)
 
 	SetDefault("GOS_POSTGRES_DATASOURCE", "")
 	SetDefault("GOS_DB_NAME", "gosaas")
+	SetDefault("GOS_EMAIL_FROM", "")
 
 	// CORS
 	SetDefault("GOS_CORS_ALLOWED_ORIGINS", []string{"https://*", "http://*"})
@@ -64,9 +69,12 @@ func New() (*Config, error) {
 	SetDefault("GOS_JWT_SIGNING_SECRET", 300)
 	SetDefault("GOS_JWT_ISSUER", 300)
 	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 15*60) // 15 minutes
+	SetDefault("GOS_RESET_PASSWORD_REQUEST_EXPIRY_MINUTES", 30)
 
+	// Mailer
 	SetDefault("GOS_RESEND_API_KEY", "")
-	
+	SetDefault("GOS_BREVO_API_KEY", "")
+
 	// Unmarshal environment variables into Config struct
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {

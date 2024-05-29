@@ -17,12 +17,13 @@ import (
 var postgresSchema string
 
 const (
-	tableLoginCredentialsUser    = "login_credentials_user"
-	tableAccessToken             = "access_token"
-	tableAccount                 = "account"
-	tableOrganisation            = "organisation"
-	tableOrganisationAccountRole = "organisation_account_role"
-	tableLoginProvider           = "login_provider"
+	tableLoginCredentialsUser              = "login_credentials_user"
+	tableLoginCredentialsUserResetPassword = "login_credentials_user_reset_password"
+	tableAccessToken                       = "access_token"
+	tableAccount                           = "account"
+	tableOrganisation                      = "organisation"
+	tableOrganisationAccountRole           = "organisation_account_role"
+	tableLoginProvider                     = "login_provider"
 )
 
 var _ Interface = (*Store)(nil)
@@ -67,6 +68,14 @@ type Interface interface {
 	GetAccessToken(ctx context.Context, input GetAccessTokenInput) (*model.AccessToken, error)
 	GetAccessTokenByRefreshToken(ctx context.Context, refreshToken string) (*model.AccessToken, error)
 
+	GetLoginCredentialsUserByEmail(ctx context.Context, email string) (*model.LoginCredentialsUser, error)
+	LoginCredentialsUserEmailExists(ctx context.Context, email string) (bool, error)
+	CreateResetPasswordRequest(ctx context.Context, userID, code string) (*model.ResetPasswordRequest, error)
+	UpdateResetPasswordReceipt(ctx context.Context, id string, receipt string) error
+	GetResetPasswordRequest(ctx context.Context, code string) (*model.ResetPasswordRequest, error)
+	UpdateLoginCredentialsUserPassword(ctx context.Context, userID, password string) error
+	DeleteResetPasswordRequest(ctx context.Context, id string) error
+
 	CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
 		*model.Account,
 		*model.Organisation,
@@ -74,8 +83,6 @@ type Interface interface {
 		*model.AccountRole,
 		error,
 	)
-	GetLoginCredentialsUserByEmail(ctx context.Context, email string) (*model.LoginCredentialsUser, error)
-	LoginCredentialsUserEmailExists(ctx context.Context, email string) (bool, error)
 	GetAccount(ctx context.Context, accountID string) (*model.Account, error)
 	GetAccountByLoginProvider(ctx context.Context, provider string, providerUserID string) (*model.Account, error)
 	GetAccountRoleByID(ctx context.Context, accountRoleID string) (*model.AccountRole, error)
@@ -406,4 +413,70 @@ func (s *Store) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID
 	orgID := record.Get("organisation_id").(string)
 
 	return s.GetOrganisation(ctx, orgID)
+}
+
+func (s *Store) CreateResetPasswordRequest(ctx context.Context, userID, code string) (*model.ResetPasswordRequest, error) {
+	record, err := s.store.Collection(tableLoginCredentialsUserResetPassword).CreateRecord(ctx, store.Record{
+		"id":         uid.ID(),
+		"user_id":    userID,
+		"code":       code,
+		"created_at": timer.Now(),
+		"updated_at": timer.Now(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create reset password request: %w", err)
+	}
+
+	resetPasswordRequest := &model.ResetPasswordRequest{}
+	if err := record.Decode(resetPasswordRequest); err != nil {
+		return nil, err
+	}
+
+	return resetPasswordRequest, nil
+}
+
+func (s *Store) UpdateResetPasswordReceipt(ctx context.Context, id string, receipt string) error {
+	_, err := s.store.Collection(tableLoginCredentialsUserResetPassword).UpdateRecord(ctx, id, store.Record{
+		"receipt":    receipt,
+		"updated_at": timer.Now(),
+	})
+	if err != nil {
+		return fmt.Errorf("update receipt: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) GetResetPasswordRequest(ctx context.Context, code string) (*model.ResetPasswordRequest, error) {
+	record, err := s.store.Collection(tableLoginCredentialsUserResetPassword).FindOne(ctx, store.Filter{"code": code})
+	if err != nil {
+		return nil, fmt.Errorf("get reset password request: %w", err)
+	}
+
+	resetPasswordRequest := &model.ResetPasswordRequest{}
+	if err := record.Decode(resetPasswordRequest); err != nil {
+		return nil, err
+	}
+
+	return resetPasswordRequest, nil
+}
+
+func (s *Store) UpdateLoginCredentialsUserPassword(ctx context.Context, userID, password string) error {
+	_, err := s.store.Collection(tableLoginCredentialsUser).UpdateRecord(ctx, userID, store.Record{
+		"password":   password,
+		"updated_at": timer.Now(),
+	})
+	if err != nil {
+		return fmt.Errorf("update login credentials user password: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) DeleteResetPasswordRequest(ctx context.Context, id string) error {
+	if err := s.store.Collection(tableLoginCredentialsUserResetPassword).DeleteRecord(ctx, id); err != nil {
+		return fmt.Errorf("delete reset password request: %w", err)
+	}
+
+	return nil
 }

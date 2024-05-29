@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/core/auth/model"
 	"github.com/tuongaz/go-saas/core/auth/signer"
@@ -15,10 +14,13 @@ import (
 	"github.com/tuongaz/go-saas/pkg/encrypt"
 	"github.com/tuongaz/go-saas/pkg/hooks"
 	"github.com/tuongaz/go-saas/pkg/log"
-	store2 "github.com/tuongaz/go-saas/store"
+	"github.com/tuongaz/go-saas/service/emailer"
+	coreStore "github.com/tuongaz/go-saas/store"
 )
 
 type Service struct {
+	emailer          emailer.Interface
+	cfg              *config.Config
 	store            store.Interface
 	signer           signer.Interface
 	encryptor        encrypt.Interface
@@ -29,13 +31,15 @@ type Service struct {
 	onAccountCreated *hooks.Hook[*OnAccountCreatedEvent]
 }
 
-func New(cfg *config.Config, st store2.Interface) (*Service, error) {
+func New(cfg *config.Config, emailer emailer.Interface, st coreStore.Interface) (*Service, error) {
 	authStore, err := store.New(st)
 	if err != nil {
 		return nil, err
 	}
 
 	authSrv := &Service{
+		cfg:              cfg,
+		emailer:          emailer,
 		signer:           signer.NewHS256Signer([]byte(cfg.JWTSigningSecret)),
 		encryptor:        encrypt.New(cfg.EncryptionKey),
 		jwtIssuer:        cfg.JWTIssuer,

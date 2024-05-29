@@ -6,8 +6,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/pkg/apierror"
 	"github.com/tuongaz/go-saas/pkg/oauth2"
 	"github.com/tuongaz/go-saas/pkg/oauth2/providers"
+	"github.com/tuongaz/go-saas/store"
 
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
@@ -21,6 +23,9 @@ func (s *Service) SetupAPI(router *chi.Mux) {
 		// public routes
 		r.Get("/oauth2-providers", s.Oauth2EnabledProvidersHandler)
 		r.Post("/signup", s.SignupHandler)
+		r.Post("/reset-password", s.ResetPasswordHandler)
+		r.Get("/reset-password", s.GetResetPasswordHandler)
+		r.Post("/reset-password-confirm", s.ResetPasswordConfirmHandler)
 		r.Post("/login", s.LoginHandler)
 		r.Post("/token", s.RefreshTokenHandler)
 		r.Get("/{provider}", s.Oauth2AuthenticateHandler)
@@ -121,6 +126,54 @@ func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	authInfo, err := s.loginUsernamePasswordAccount(ctx, input)
 	httputil.HandleResponse(ctx, w, authInfo, err)
+}
+
+func (s *Service) GetResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("code is required", nil, nil))
+		return
+	}
+
+	req, err := s.store.GetResetPasswordRequest(ctx, code)
+	if store.IsNotFoundError(err) {
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("reset password request not found", nil))
+		return
+	}
+	if req.IsExpired(s.cfg.ResetPasswordRequestExpiryMinutes) {
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("reset password request expired", nil))
+		return
+	}
+
+	httputil.HandleResponse(ctx, w, map[string]any{}, err)
+}
+
+func (s *Service) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	input, err := httputil.ParseRequestBody[ResetPasswordRequestInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	err = s.resetPasswordRequest(ctx, input)
+	httputil.HandleResponse(ctx, w, nil, err)
+}
+
+func (s *Service) ResetPasswordConfirmHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	input, err := httputil.ParseRequestBody[ResetPasswordConfirmInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	err = s.resetPasswordConfirm(ctx, input)
+	httputil.HandleResponse(ctx, w, nil, err)
 }
 
 func (s *Service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {

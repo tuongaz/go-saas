@@ -14,3 +14,15 @@ type LoginCredentialsUser struct {
 	CreatedAt                         time.Time `json:"created_at"`
 	UpdatedAt                         time.Time `json:"updated_at"`
 }
+
+type ResetPasswordRequest struct {
+	ID        string    `json:"id"`
+	Code      string    `json:"code"`
+	UserID    string    `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (r *ResetPasswordRequest) IsExpired(allowedPeriodMinutes uint) bool {
+	expiredAt := r.CreatedAt.Add(time.Duration(allowedPeriodMinutes) * time.Minute)
+	return time.Now().After(expiredAt)
+}

@@ -7,7 +7,7 @@ import (
 	"github.com/resend/resend-go/v2"
 )
 
-func New(apiKey string) *Resend {
+func NewResend(apiKey string) *Resend {
 	return &Resend{
 		client: resend.NewClient(apiKey),
 	}
