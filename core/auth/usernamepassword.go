@@ -165,7 +165,7 @@ func (s *Service) resetPasswordRequest(ctx context.Context, input *ResetPassword
 	}
 
 	out, err := s.emailer.Send(ctx, emailer.SendEmailInput{
-		//From:    s.cfg.EmailFrom,
+		From:    s.cfg.EmailFrom,
 		To:      []string{user.Email},
 		HTML:    body.String(),
 		Subject: "Reset Your Password",
