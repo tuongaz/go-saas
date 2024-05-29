@@ -41,9 +41,5 @@ CREATE TABLE IF NOT EXISTS stripe_customer
     customer_id VARCHAR NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS unique_invoice_account_id_reference_id
-    ON invoice (account_id, reference_id);
-
-
 
 
