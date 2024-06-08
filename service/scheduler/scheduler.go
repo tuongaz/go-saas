@@ -1,11 +1,14 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/tuongaz/go-saas/core"
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 var _ Interface = &Scheduler{}
@@ -20,9 +23,11 @@ type Interface interface {
 
 type Scheduler struct {
 	scheduler gocron.Scheduler
+	app       core.AppInterface
+	isLeader  bool
 }
 
-func New() (*Scheduler, error) {
+func newScheduler(app core.AppInterface) (*Scheduler, error) {
 	scheduler, err := gocron.NewScheduler()
 	if err != nil {
 		return nil, fmt.Errorf("new scheduler: %w", err)
@@ -30,16 +35,36 @@ func New() (*Scheduler, error) {
 
 	return &Scheduler{
 		scheduler: scheduler,
+		app:       app,
 	}, nil
 }
 
-func MustNew() *Scheduler {
-	s, err := New()
+func MustRegister(app core.AppInterface) *Scheduler {
+	s, err := newScheduler(app)
 	if err != nil {
 		panic(fmt.Errorf("failed to create a new scheduler: %w", err))
 	}
 	s.scheduler.Start()
-	
+
+	app.OnDatabaseReady().Add(func(ctx context.Context, event *core.OnDatabaseReadyEvent) error {
+		go func() {
+			for {
+				if v := s.tryAdvisoryLock(); v {
+					log.Info("Acquired scheduler lock, become leader")
+					s.isLeader = true
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}()
+
+		return nil
+	})
+
+	app.OnTerminate().Add(func(ctx context.Context, event *core.OnTerminateEvent) error {
+		s.releaseAdvisoryLock()
+		return nil
+	})
+
 	return s
 }
 
@@ -65,7 +90,11 @@ func (s *Scheduler) RemoveJobByTags(tags ...string) {
 func (s *Scheduler) RunEvery(d time.Duration, job func(), tags ...string) (id string, err error) {
 	j, err := s.scheduler.NewJob(
 		gocron.DurationJob(d),
-		gocron.NewTask(job),
+		gocron.NewTask(func() {
+			if s.isLeader {
+				job()
+			}
+		}),
 		gocron.WithTags(tags...),
 	)
 	if err != nil {
@@ -79,7 +108,11 @@ func (s *Scheduler) RunEvery(d time.Duration, job func(), tags ...string) (id st
 func (s *Scheduler) RunCron(cron string, job func(), tags ...string) (id string, err error) {
 	j, err := s.scheduler.NewJob(
 		gocron.CronJob(cron, true),
-		gocron.NewTask(job),
+		gocron.NewTask(func() {
+			if s.isLeader {
+				job()
+			}
+		}),
 		gocron.WithTags(tags...),
 	)
 	if err != nil {
@@ -93,7 +126,13 @@ func (s *Scheduler) RunCron(cron string, job func(), tags ...string) (id string,
 func (s *Scheduler) RunAt(t time.Time, job func(), tags ...string) (id string, err error) {
 	j, err := s.scheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(t)),
-		gocron.NewTask(job),
+		gocron.NewTask(
+			func() {
+				if s.isLeader {
+					job()
+				}
+			},
+		),
 		gocron.WithTags(tags...),
 	)
 	if err != nil {

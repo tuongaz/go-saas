@@ -24,6 +24,7 @@ type Interface interface {
 	Collection(table string) *Collection
 	Exec(ctx context.Context, query string, args ...any) error
 	Tx(ctx context.Context) (*StoreTx, error)
+	DB() *sqlx.DB
 	Close() error
 }
 
@@ -57,6 +58,10 @@ func (s *Store) Exec(ctx context.Context, query string, args ...interface{}) err
 	}
 
 	return nil
+}
+
+func (s *Store) DB() *sqlx.DB {
+	return s.db
 }
 
 func (s *Store) Tx(ctx context.Context) (*StoreTx, error) {
