@@ -53,7 +53,7 @@ func MustRegister(app core.AppInterface) *Scheduler {
 					log.Info("Acquired scheduler lock, become leader")
 					s.isLeader = true
 				}
-				time.Sleep(1 * time.Second)
+				time.Sleep(30 * time.Second)
 			}
 		}()
 
