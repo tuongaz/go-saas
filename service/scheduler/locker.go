@@ -6,7 +6,7 @@ import (
 	"github.com/tuongaz/go-saas/pkg/log"
 )
 
-const lockID = 123456789
+const lockID = 123456
 
 func (s *Scheduler) waitToAcquireAdvisoryLock() {
 	go func() {
