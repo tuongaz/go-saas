@@ -15,7 +15,6 @@ func (s *Scheduler) waitToAcquireAdvisoryLock() {
 				log.Info("Acquired scheduler lock, become leader")
 				s.isLeader = true
 			}
-			log.Info("not scheduler leader")
 			time.Sleep(30 * time.Second)
 		}
 	}()
