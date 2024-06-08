@@ -12,7 +12,9 @@ func (s *Scheduler) waitToAcquireAdvisoryLock() {
 	go func() {
 		for {
 			if v := s.tryAdvisoryLock(); v {
-				log.Info("Acquired scheduler lock, become leader")
+				if s.isLeader == false {
+					log.Info("Acquired scheduler lock, become leader")
+				}
 				s.isLeader = true
 			}
 			time.Sleep(30 * time.Second)
