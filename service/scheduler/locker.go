@@ -1,26 +1,39 @@
 package scheduler
 
 import (
-	"fmt"
-	"log"
+	"time"
+
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 const lockID = 123456789
+
+func (s *Scheduler) waitToAcquireAdvisoryLock() {
+	go func() {
+		for {
+			if v := s.tryAdvisoryLock(); v {
+				log.Info("Acquired scheduler lock, become leader")
+				s.isLeader = true
+			}
+			log.Info("not scheduler leader")
+			time.Sleep(30 * time.Second)
+		}
+	}()
+}
 
 func (s *Scheduler) tryAdvisoryLock() bool {
 	var success bool
 	err := s.app.Store().DB().QueryRow("SELECT pg_try_advisory_lock($1)", lockID).Scan(&success)
 	if err != nil {
-		log.Println("Error acquiring lock:", err)
+		log.Error("Error acquiring lock:", err)
 		return false
 	}
 	return success
 }
 
 func (s *Scheduler) releaseAdvisoryLock() {
-	fmt.Println("Releasing lock")
 	_, err := s.app.Store().DB().Exec("SELECT pg_advisory_unlock($1)", lockID)
 	if err != nil {
-		log.Println("Error releasing lock:", err)
+		log.Error("Error releasing lock:", err)
 	}
 }

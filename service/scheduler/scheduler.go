@@ -8,7 +8,6 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/tuongaz/go-saas/core"
-	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 var _ Interface = &Scheduler{}
@@ -47,15 +46,7 @@ func MustRegister(app core.AppInterface) *Scheduler {
 	s.scheduler.Start()
 
 	app.OnDatabaseReady().Add(func(ctx context.Context, event *core.OnDatabaseReadyEvent) error {
-		go func() {
-			for {
-				if v := s.tryAdvisoryLock(); v {
-					log.Info("Acquired scheduler lock, become leader")
-					s.isLeader = true
-				}
-				time.Sleep(30 * time.Second)
-			}
-		}()
+		s.waitToAcquireAdvisoryLock()
 
 		return nil
 	})
