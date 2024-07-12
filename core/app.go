@@ -84,7 +84,7 @@ func New(opts ...func(cfg *config.Config)) (*App, error) {
 	if cfg.ResendAPIKey != "" {
 		emailService = emailer.NewResend(cfg.ResendAPIKey)
 	} else {
-		return nil, fmt.Errorf("email service is not set")
+		emailService = emailer.NewLocal()
 	}
 
 	return &App{
