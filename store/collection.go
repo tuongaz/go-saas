@@ -134,7 +134,7 @@ func (c *Collection) FindOne(ctx context.Context, filter Filter) (*Record, error
 	return &rec, nil
 }
 
-func (c *Collection) Find(ctx context.Context, filter Filter) ([]Record, error) {
+func (c *Collection) Find(ctx context.Context, filter Filter) (*List, error) {
 	query, args := buildQuery("SELECT * FROM "+c.table, filter)
 	rows, err := c.db.QueryxContext(ctx, query, args...)
 	if err != nil {
@@ -158,7 +158,9 @@ func (c *Collection) Find(ctx context.Context, filter Filter) ([]Record, error) 
 		return nil, fmt.Errorf("error processing rows: %v", err)
 	}
 
-	return recs, nil
+	return &List{
+		Records: recs,
+	}, nil
 }
 
 func (c *Collection) Count(ctx context.Context, filter Filter) (int, error) {
@@ -195,4 +197,19 @@ func buildQuery(baseQuery string, filter Filter) (string, []any) {
 		i++
 	}
 	return baseQuery + " WHERE " + strings.Join(parts, " AND "), args
+}
+
+type List struct {
+	Records []Record
+}
+
+func (r List) Decode(obj any) error {
+	jsonData, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("encode to json: %w", err)
+	}
+	if err := json.Unmarshal(jsonData, obj); err != nil {
+		return fmt.Errorf("decode json to struct: %w", err)
+	}
+	return nil
 }

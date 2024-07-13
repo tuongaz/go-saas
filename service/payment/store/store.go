@@ -255,13 +255,8 @@ func (s *Store) GetPaymentMethods(ctx context.Context, accountID string) ([]*mod
 	}
 
 	var paymentMethods []*model.PaymentMethod
-	for _, record := range records {
-		var paymentMethod model.PaymentMethod
-		if err := record.Decode(&paymentMethod); err != nil {
-			return nil, fmt.Errorf("decode payment method: %w", err)
-		}
-
-		paymentMethods = append(paymentMethods, &paymentMethod)
+	if err := records.Decode(&paymentMethods); err != nil {
+		return nil, fmt.Errorf("decode payment methods: %w", err)
 	}
 
 	return paymentMethods, nil

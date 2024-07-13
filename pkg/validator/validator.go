@@ -13,7 +13,7 @@ func init() {
 
 func Validate(input any) error {
 	if err := validate.Struct(input); err != nil {
-		return apierror.NewValidationError(err)
+		return apierror.NewValidationError("validation", err)
 	}
 
 	return nil
