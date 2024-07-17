@@ -204,7 +204,7 @@ type List struct {
 }
 
 func (r List) Decode(obj any) error {
-	jsonData, err := json.Marshal(r)
+	jsonData, err := json.Marshal(r.Records)
 	if err != nil {
 		return fmt.Errorf("encode to json: %w", err)
 	}
