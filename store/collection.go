@@ -110,6 +110,7 @@ func (c *Collection) GetRecord(ctx context.Context, id any) (*Record, error) {
 	if err = rows.MapScan(rec); err != nil {
 		return nil, fmt.Errorf("failed to scan record into map: %v", err)
 	}
+	rec.normalise()
 
 	return &rec, nil
 }
