@@ -27,7 +27,8 @@ func (s *Service) SetupAPI(router *chi.Mux) {
 		r.Get("/reset-password", s.GetResetPasswordHandler)
 		r.Post("/reset-password-confirm", s.ResetPasswordConfirmHandler)
 		r.Post("/login", s.LoginHandler)
-		r.Post("/token", s.RefreshTokenHandler)
+		r.Post("/token", s.RefreshTokenHandler) // deprecated
+		r.Get("/token", s.RefreshTokenHandler)
 		r.Get("/{provider}", s.Oauth2AuthenticateHandler)
 		r.Get("/{provider}/callback", s.Oauth2LoginSignupCallbackHandler)
 

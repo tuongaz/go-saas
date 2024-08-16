@@ -36,7 +36,11 @@ func (r *Response) JSON(body any, status ...int) {
 		case string:
 			_, _ = r.w.Write([]byte(b))
 		default:
-			data, _ := json.Marshal(body)
+			data, err := json.Marshal(body)
+			if err != nil {
+				r.Error(context.Background(), err)
+				return
+			}
 			_, _ = r.w.Write(data)
 		}
 	}
