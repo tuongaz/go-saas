@@ -61,7 +61,7 @@ func New() (*Config, error) {
 	// CORS
 	SetDefault("GOS_CORS_ALLOWED_ORIGINS", []string{"https://*", "http://*"})
 	SetDefault("GOS_CORS_ALLOWED_HEADERS", []string{"*"})
-	SetDefault("GOS_CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	SetDefault("GOS_CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"})
 	SetDefault("GOS_CORS_EXPOSED_HEADERS", []string{"Link"})
 	SetDefault("GOS_CORS_ALLOW_CREDENTIALS", false)
 	SetDefault("GOS_CORS_MAX_AGE", 300)
