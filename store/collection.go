@@ -193,6 +193,16 @@ func (c *Collection) DeleteRecord(ctx context.Context, id any) error {
 	return err
 }
 
+func (c *Collection) DeleteRecords(ctx context.Context, filter Filter) error {
+	query, args := buildQuery("DELETE FROM "+c.table, filter)
+	_, err := c.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute delete query: %w", err)
+	}
+
+	return nil
+}
+
 func (c *Collection) FindOne(ctx context.Context, filter Filter) (*Record, error) {
 	var rec Record = make(map[string]interface{})
 	query, args := buildQuery("SELECT * FROM "+c.table, filter)

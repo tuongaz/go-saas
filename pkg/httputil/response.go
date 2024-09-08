@@ -20,9 +20,10 @@ func (r *Response) Error(ctx context.Context, err error) {
 }
 
 func (r *Response) JSON(body any, status ...int) {
-	if body != nil {
-		r.w.Header().Set("Content-Type", "application/json")
+	if body == nil {
+		body = map[string]string{}
 	}
+	r.w.Header().Set("Content-Type", "application/json")
 	if len(status) > 0 {
 		r.w.WriteHeader(status[0])
 	} else {
@@ -33,8 +34,10 @@ func (r *Response) JSON(body any, status ...int) {
 		switch b := body.(type) {
 		case []byte:
 			_, _ = r.w.Write(b)
+			break
 		case string:
 			_, _ = r.w.Write([]byte(b))
+			break
 		default:
 			data, err := json.Marshal(body)
 			if err != nil {
