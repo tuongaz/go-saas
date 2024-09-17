@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -41,7 +42,15 @@ func (r Record) prepareForDB() (keys []string, values []any, placeholders []stri
 		switch value := v.(type) {
 		case string, int, int64, float64, bool, nil:
 			// These types can be inserted directly
-			values = append(values, value)
+			values = append(values, v)
+		case *string, *int, *int64, *float64, *bool:
+			// Handle all pointer types together
+			rv := reflect.ValueOf(value)
+			if rv.IsNil() {
+				values = append(values, nil)
+			} else {
+				values = append(values, rv.Elem().Interface())
+			}
 		default:
 			// For any other type, marshal to JSON
 			jsonBytes, marshalErr := json.Marshal(value)
@@ -195,6 +204,7 @@ func (c *Collection) DeleteRecord(ctx context.Context, id any) error {
 
 func (c *Collection) DeleteRecords(ctx context.Context, filter Filter) error {
 	query, args := buildQuery("DELETE FROM "+c.table, filter)
+
 	_, err := c.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to execute delete query: %w", err)
@@ -234,6 +244,7 @@ func (c *Collection) FindOne(ctx context.Context, filter Filter) (*Record, error
 
 func (c *Collection) Find(ctx context.Context, filter Filter) (*List, error) {
 	query, args := buildQuery("SELECT * FROM "+c.table, filter)
+
 	rows, err := c.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -292,6 +303,10 @@ func buildQuery(baseQuery string, filter Filter) (string, []any) {
 	i := 1
 
 	for k, v := range filter {
+		if v == nil {
+			parts = append(parts, fmt.Sprintf("%s IS NULL", k))
+			continue
+		}
 		parts = append(parts, fmt.Sprintf("%s = $%d", k, i))
 		args = append(args, v)
 		i++
