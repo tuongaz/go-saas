@@ -40,11 +40,12 @@ func (r Record) prepareForDB() (keys []string, values []any, placeholders []stri
 		keys = append(keys, k)
 
 		switch value := v.(type) {
-		case string, int, int64, float64, bool, nil:
-			// These types can be inserted directly
+		case string, int, int64, float64, bool:
 			values = append(values, v)
+		case nil:
+			// Explicitly handle nil as NULL
+			values = append(values, nil)
 		case *string, *int, *int64, *float64, *bool:
-			// Handle all pointer types together
 			rv := reflect.ValueOf(value)
 			if rv.IsNil() {
 				values = append(values, nil)
@@ -52,7 +53,6 @@ func (r Record) prepareForDB() (keys []string, values []any, placeholders []stri
 				values = append(values, rv.Elem().Interface())
 			}
 		default:
-			// For any other type, marshal to JSON
 			jsonBytes, marshalErr := json.Marshal(value)
 			if marshalErr != nil {
 				return nil, nil, nil, fmt.Errorf("failed to marshal value to JSON for key %s: %w", k, marshalErr)
