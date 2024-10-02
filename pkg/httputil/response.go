@@ -61,7 +61,7 @@ func HandleResponse(ctx context.Context, w http.ResponseWriter, out any, err err
 
 	response := New(w)
 	if err != nil {
-		log.Default().ErrorContext(ctx, "request error", log.ErrorAttr(err))
+		log.Default().ErrorContext(ctx, err.Error(), log.ErrorAttr(err))
 
 		var unwrappedErr *apierror.APIError
 		if errors.As(err, &unwrappedErr) {
