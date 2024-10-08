@@ -38,6 +38,9 @@ func (r *Response) JSON(body any, status ...int) {
 		case string:
 			_, _ = r.w.Write([]byte(b))
 			break
+		case *string:
+			_, _ = r.w.Write([]byte(*b))
+			break
 		default:
 			data, err := json.Marshal(body)
 			if err != nil {
