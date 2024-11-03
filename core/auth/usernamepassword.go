@@ -58,7 +58,7 @@ func (s *Service) signupUsernamePasswordAccount(
 	firstName, lastName := splitName(input.Name)
 
 	ownerAcc, org, loginProvider, accountRole, err := s.store.CreateOwnerAccount(ctx, store.CreateOwnerAccountInput{
-		Email:     input.Email,
+		Email:     strings.TrimSpace(strings.ToLower(input.Email)),
 		Name:      input.Name,
 		FirstName: firstName,
 		LastName:  lastName,
