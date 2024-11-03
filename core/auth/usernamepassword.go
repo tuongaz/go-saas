@@ -119,7 +119,7 @@ func (s *Service) resetPasswordConfirm(ctx context.Context, input *ResetPassword
 }
 
 func (s *Service) resetPasswordRequest(ctx context.Context, input *ResetPasswordRequestInput) error {
-	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, input.Email)
+	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, strings.TrimSpace(strings.ToLower(input.Email)))
 	if err != nil {
 		if !coreStore.IsNotFoundError(err) {
 			return fmt.Errorf("auth: reset password request - GetLoginCredentialsUserByEmail: %w", err)
