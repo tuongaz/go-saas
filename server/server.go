@@ -12,6 +12,7 @@ import (
 
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/pkg/log"
+	customMiddleware "github.com/tuongaz/go-saas/server/middleware"
 )
 
 type Server struct {
@@ -25,6 +26,7 @@ func New(cfg *config.Config) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(customMiddleware.RateLimiterMiddleware()) // Add rate limiter middleware (15 req/sec)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.CORSAllowedOrigins,
