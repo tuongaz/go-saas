@@ -15,14 +15,13 @@ import (
 )
 
 type Server struct {
-	config      *config.Config
-	r           *chi.Mux
-	server      *http.Server
-	baseURL     string
-	middlewares []func(http.Handler) http.Handler
+	config  *config.Config
+	r       *chi.Mux
+	server  *http.Server
+	baseURL string
 }
 
-func New(cfg *config.Config) *Server {
+func New(cfg *config.Config, middlewares ...func(http.Handler) http.Handler) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -35,6 +34,9 @@ func New(cfg *config.Config) *Server {
 		MaxAge:           cfg.CORSMaxAge,
 	}))
 
+	for _, m := range middlewares {
+		r.Use(m)
+	}
 	// Get base URL from config
 	baseURL := cfg.BaseURL
 
@@ -48,11 +50,10 @@ func New(cfg *config.Config) *Server {
 	}
 
 	return &Server{
-		config:      cfg,
-		r:           r,
-		server:      srv,
-		baseURL:     baseURL,
-		middlewares: []func(http.Handler) http.Handler{},
+		config:  cfg,
+		r:       r,
+		server:  srv,
+		baseURL: baseURL,
 	}
 }
 
@@ -61,10 +62,6 @@ func (s *Server) Router() *chi.Mux {
 }
 
 func (s *Server) Serve() error {
-	for _, m := range s.middlewares {
-		s.r.Use(m)
-	}
-
 	log.Info(fmt.Sprintf("Server started at http://127.0.0.1:%s", s.config.ServerPort))
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("server error: %w", err)
@@ -82,10 +79,6 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // BaseURL returns the base URL of the server
 func (s *Server) BaseURL() string {
 	return s.baseURL
-}
-
-func (s *Server) AddMiddleware(m ...func(http.Handler) http.Handler) {
-	s.middlewares = append(s.middlewares, m...)
 }
 
 func (s *Server) PrintRoutes() {

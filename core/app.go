@@ -217,11 +217,7 @@ func (a *App) Start() error {
 		return fmt.Errorf("app bootstrap: %w", err)
 	}
 
-	a.server = server.New(a.Config())
-
-	for _, m := range a.serverMiddlewares {
-		a.server.AddMiddleware(m)
-	}
+	a.server = server.New(a.Config(), a.serverMiddlewares...)
 
 	// Setup the auth API using the existing auth service
 	a.auth.SetupAPI(a.server.Router())
