@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v78"
 
 	"github.com/tuongaz/go-saas/core"
@@ -71,7 +70,7 @@ func MustRegister(appInstance core.AppInterface) *Service {
 	})
 
 	appInstance.OnBeforeServe().Add(func(ctx context.Context, e *core.OnBeforeServeEvent) error {
-		e.App.PrivateRoute("/payment-methods/stripe", func(r chi.Router) {
+		e.App.PrivateRoute("/payment-methods/stripe", func(r core.Router) {
 			r.Post("/", s.CreateStripePaymentMethodHandler)
 		})
 

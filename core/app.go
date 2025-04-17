@@ -20,6 +20,8 @@ import (
 	"github.com/tuongaz/go-saas/store"
 )
 
+type Router chi.Router
+
 var _ AppInterface = (*App)(nil)
 
 type AppInterface interface {
@@ -74,8 +76,8 @@ type AppInterface interface {
 	// Start the app
 	Start() error
 
-	PublicRoute(pattern string, fn func(r chi.Router))
-	PrivateRoute(pattern string, fn func(r chi.Router))
+	PublicRoute(pattern string, fn func(r Router))
+	PrivateRoute(pattern string, fn func(r Router))
 }
 
 type App struct {
@@ -187,11 +189,13 @@ func (a *App) Encryptor() encrypt.Interface {
 	return a.encryptor
 }
 
-func (a *App) PublicRoute(pattern string, fn func(r chi.Router)) {
-	a.server.Router().Route(pattern, fn)
+func (a *App) PublicRoute(pattern string, fn func(r Router)) {
+	a.server.Router().Route(pattern, func(r chi.Router) {
+		fn(r)
+	})
 }
 
-func (a *App) PrivateRoute(pattern string, fn func(r chi.Router)) {
+func (a *App) PrivateRoute(pattern string, fn func(r Router)) {
 	a.server.Router().Route(pattern, func(r chi.Router) {
 		r.Use(a.auth.NewMiddleware())
 		fn(r)
