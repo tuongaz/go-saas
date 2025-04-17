@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -114,6 +115,8 @@ type App struct {
 	onAfterAccountUpdated  *hooks.Hook[*OnAfterAccountUpdatedEvent]
 	onBeforeAccountDeleted *hooks.Hook[*OnBeforeAccountDeletedEvent]
 	onAfterAccountDeleted  *hooks.Hook[*OnAfterAccountDeletedEvent]
+
+	serverMiddlewares []func(http.Handler) http.Handler
 }
 
 func New(opts ...func(cfg *config.Config)) (*App, error) {
@@ -162,6 +165,7 @@ func New(opts ...func(cfg *config.Config)) (*App, error) {
 		onAfterAccountDeleted:       &hooks.Hook[*OnAfterAccountDeletedEvent]{},
 		encryptor:                   encryptor,
 		emailer:                     emailService,
+		serverMiddlewares:           []func(http.Handler) http.Handler{},
 	}, nil
 }
 
@@ -195,6 +199,10 @@ func (a *App) PublicRoute(pattern string, fn func(r Router)) {
 	})
 }
 
+func (a *App) AddServerMiddleware(m ...func(http.Handler) http.Handler) {
+	a.serverMiddlewares = append(a.serverMiddlewares, m...)
+}
+
 func (a *App) PrivateRoute(pattern string, fn func(r Router)) {
 	a.server.Router().Route(pattern, func(r chi.Router) {
 		r.Use(a.auth.NewMiddleware())
@@ -210,6 +218,10 @@ func (a *App) Start() error {
 	}
 
 	a.server = server.New(a.Config())
+
+	for _, m := range a.serverMiddlewares {
+		a.server.AddMiddleware(m)
+	}
 
 	// Setup the auth API using the existing auth service
 	a.auth.SetupAPI(a.server.Router())

@@ -12,22 +12,20 @@ import (
 
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/pkg/log"
-	customMiddleware "github.com/tuongaz/go-saas/server/middleware"
 )
 
 type Server struct {
-	config  *config.Config
-	r       *chi.Mux
-	server  *http.Server
-	baseURL string
+	config      *config.Config
+	r           *chi.Mux
+	server      *http.Server
+	baseURL     string
+	middlewares []func(http.Handler) http.Handler
 }
 
 func New(cfg *config.Config) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(customMiddleware.RateLimiterMiddleware()) // Add rate limiter middleware (15 req/sec)
-
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.CORSAllowedOrigins,
 		AllowedHeaders:   cfg.CORSAllowedHeaders,
@@ -50,10 +48,11 @@ func New(cfg *config.Config) *Server {
 	}
 
 	return &Server{
-		config:  cfg,
-		r:       r,
-		server:  srv,
-		baseURL: baseURL,
+		config:      cfg,
+		r:           r,
+		server:      srv,
+		baseURL:     baseURL,
+		middlewares: []func(http.Handler) http.Handler{},
 	}
 }
 
@@ -79,6 +78,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // BaseURL returns the base URL of the server
 func (s *Server) BaseURL() string {
 	return s.baseURL
+}
+
+func (s *Server) AddMiddleware(m ...func(http.Handler) http.Handler) {
+	s.middlewares = append(s.middlewares, m...)
 }
 
 func (s *Server) PrintRoutes() {
