@@ -61,6 +61,10 @@ func (s *Server) Router() *chi.Mux {
 }
 
 func (s *Server) Serve() error {
+	for _, m := range s.middlewares {
+		s.r.Use(m)
+	}
+
 	log.Info(fmt.Sprintf("Server started at http://127.0.0.1:%s", s.config.ServerPort))
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("server error: %w", err)
