@@ -10,6 +10,7 @@ import (
 	"github.com/tuongaz/go-saas/pkg/uid"
 	"github.com/tuongaz/go-saas/service/payment/model"
 	"github.com/tuongaz/go-saas/store"
+	"github.com/tuongaz/go-saas/store/types"
 )
 
 const (
@@ -43,7 +44,7 @@ type Store struct {
 }
 
 func (s *Store) CreateStripeCustomer(ctx context.Context, accountID, customerID string) (*model.StripeCustomer, error) {
-	record := store.Record{
+	record := types.Record{
 		"account_id":  accountID,
 		"customer_id": customerID,
 	}
@@ -86,7 +87,7 @@ func New(store store.Interface) (*Store, error) {
 }
 
 func (s *Store) CreateInvoice(ctx context.Context, input model.CreateInvoiceInput) (*model.Invoice, error) {
-	record := store.Record{
+	record := types.Record{
 		"id":              uid.ID(),
 		"account_id":      input.AccountID,
 		"reference_id":    input.ReferenceID,
@@ -133,7 +134,7 @@ func (s *Store) UpdateInvoice(ctx context.Context, id string, input model.Update
 		return fmt.Errorf("find invoice record: %w", err)
 	}
 
-	var record = store.Record{}
+	var record = types.Record{}
 
 	if input.AccountID != nil {
 		record["account_id"] = *input.AccountID
@@ -161,7 +162,7 @@ func (s *Store) UpdateInvoice(ctx context.Context, id string, input model.Update
 }
 
 func (s *Store) CreatePayment(ctx context.Context, input model.CreatePaymentInput) (*model.Payment, error) {
-	record := store.Record{
+	record := types.Record{
 		"id":                uid.ID(),
 		"invoice_id":        input.InvoiceID,
 		"payment_method_id": input.PaymentMethodID,
@@ -192,7 +193,7 @@ func (s *Store) UpdatePayment(ctx context.Context, id string, input model.Update
 		return fmt.Errorf("find payment record: %w", err)
 	}
 
-	var record = store.Record{}
+	var record = types.Record{}
 
 	if input.Status != nil {
 		record["status"] = *input.Status
@@ -224,7 +225,7 @@ func (s *Store) CreatePaymentMethod(ctx context.Context, input CreatePaymentMeth
 		return nil, fmt.Errorf("failed to marshal data: %w", err)
 	}
 
-	record := store.Record{
+	record := types.Record{
 		"id":                   uid.ID(),
 		"account_id":           input.AccountID,
 		"provider":             input.Provider,
@@ -247,9 +248,9 @@ func (s *Store) CreatePaymentMethod(ctx context.Context, input CreatePaymentMeth
 }
 
 func (s *Store) GetPaymentMethods(ctx context.Context, accountID string) ([]*model.PaymentMethod, error) {
-	records, err := s.store.Collection(tablePaymentMethod).Find(ctx, store.Filter{
+	records, err := s.store.Collection(tablePaymentMethod).Find(ctx, store.WithFilter(store.Filter{
 		"account_id": accountID,
-	})
+	}))
 	if err != nil {
 		return nil, fmt.Errorf("find payment methods: %w", err)
 	}

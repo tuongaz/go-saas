@@ -47,6 +47,11 @@ CREATE TABLE IF NOT EXISTS account
 CREATE TABLE IF NOT EXISTS organisation
 (
     id         VARCHAR PRIMARY KEY,
+    name       TEXT,
+    description TEXT,
+    avatar     TEXT,
+    metadata   JSONB,
+    owner_id   TEXT NOT NULL REFERENCES account(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
@@ -54,25 +59,17 @@ CREATE TABLE IF NOT EXISTS organisation
 CREATE TABLE IF NOT EXISTS organisation_account_role
 (
     id              VARCHAR PRIMARY KEY,
+    role            TEXT NOT NULL,
+    account_id      VARCHAR NOT NULL REFERENCES account(id) ON DELETE CASCADE,
+    organisation_id VARCHAR NOT NULL REFERENCES organisation(id) ON DELETE CASCADE,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL,
-    role            VARCHAR                  NOT NULL,
-    account_id      VARCHAR                  NOT NULL
-        CONSTRAINT account_role_account_account_roles
-            REFERENCES account
-            ON DELETE CASCADE,
-    organisation_id VARCHAR                  NOT NULL
-        CONSTRAINT account_role_organisation_account_roles
-            REFERENCES organisation
-            ON DELETE CASCADE
+    UNIQUE (organisation_id, account_id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS unique_owner_per_organisation
     ON organisation_account_role (organisation_id)
     WHERE role = 'OWNER';
-
-CREATE UNIQUE INDEX IF NOT EXISTS org_account_unique
-    ON organisation_account_role (account_id, organisation_id);
 
 CREATE TABLE IF NOT EXISTS login_provider
 (

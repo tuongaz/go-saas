@@ -25,3 +25,7 @@ func (u *UID) Generate() string {
 func ID() string {
 	return Default.Generate()
 }
+
+func SetDefaultUID(uid Interface) {
+	Default = uid
+}

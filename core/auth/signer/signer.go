@@ -28,7 +28,7 @@ func (h SecretKeySigner) SignRegisteredClaims(claims jwt.RegisteredClaims) (stri
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenString, err := token.SignedString(h.secretKey)
 	if err != nil {
-		return "", fmt.Errorf("HS356 sign token: %w", err)
+		return "", fmt.Errorf("HS512 sign token: %w", err)
 	}
 
 	return tokenString, nil
@@ -42,7 +42,7 @@ func (h SecretKeySigner) SignCustomClaims(claims model.CustomClaims) (string, er
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenString, err := token.SignedString(h.secretKey)
 	if err != nil {
-		return "", fmt.Errorf("HS356 sign token: %w", err)
+		return "", fmt.Errorf("HS512 sign token: %w", err)
 	}
 
 	return tokenString, nil
@@ -88,7 +88,7 @@ func (h SecretKeySigner) ParseCustomClaims(tokenString string) (*model.CustomCla
 	}
 }
 
-func NewHS256Signer(secretKey []byte) *SecretKeySigner {
+func NewHS512Signer(secretKey []byte) *SecretKeySigner {
 	return &SecretKeySigner{
 		secretKey: secretKey,
 	}

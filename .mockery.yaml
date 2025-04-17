@@ -1,0 +1,11 @@
+with-expecter: true
+log-level: info
+
+packages:
+  github.com/tuongaz/go-saas/store:
+    config:
+      outpkg: store
+      dir: "./testutils/mocks/store"
+    interfaces:
+      Interface: {}
+      CollectionInterface: {}

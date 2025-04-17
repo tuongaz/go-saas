@@ -9,3 +9,5 @@ TODO.md
 /cmd/playground
 .DS_Store
 fly.toml
+.vscode
+tools/bin

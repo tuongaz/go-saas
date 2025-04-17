@@ -14,7 +14,7 @@ import (
 )
 
 // oauth2Authenticate creates new account, with new organisation and assign owner role to the account
-func (s *Service) oauth2Authenticate(
+func (s *service) oauth2Authenticate(
 	ctx context.Context,
 	user oauth2.User,
 ) (*model2.AuthenticatedInfo, error) {
@@ -58,7 +58,7 @@ func (s *Service) oauth2Authenticate(
 	return s.getAuthenticatedInfo(ctx, accountRole, user.UserID, DeviceFromCtx(ctx))
 }
 
-func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider config.OAuth2ProviderConfig, user oauth2.User) {
+func (s *service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oauthProvider config.OAuth2ProviderConfig, user oauth2.User) {
 	ctx := r.Context()
 
 	authInfo, err := s.oauth2Authenticate(
@@ -81,7 +81,7 @@ func (s *Service) oauth2SignupLogin(w http.ResponseWriter, r *http.Request, oaut
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (s *Service) oauth2SignupNewAccount(
+func (s *service) oauth2SignupNewAccount(
 	ctx context.Context,
 	user oauth2.User,
 ) (*model2.Organisation, *model2.Account, error) {

@@ -37,7 +37,7 @@ type ResetPasswordConfirmInput struct {
 	Password string `json:"password"`
 }
 
-func (s *Service) signupUsernamePasswordAccount(
+func (s *service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
 ) (*model2.AuthenticatedInfo, error) {
@@ -88,7 +88,7 @@ func (s *Service) signupUsernamePasswordAccount(
 	return out, nil
 }
 
-func (s *Service) resetPasswordConfirm(ctx context.Context, input *ResetPasswordConfirmInput) error {
+func (s *service) resetPasswordConfirm(ctx context.Context, input *ResetPasswordConfirmInput) error {
 	req, err := s.store.GetResetPasswordRequest(ctx, input.Code)
 	if err != nil {
 		if coreStore.IsNotFoundError(err) {
@@ -118,7 +118,7 @@ func (s *Service) resetPasswordConfirm(ctx context.Context, input *ResetPassword
 	return nil
 }
 
-func (s *Service) resetPasswordRequest(ctx context.Context, input *ResetPasswordRequestInput) error {
+func (s *service) resetPasswordRequest(ctx context.Context, input *ResetPasswordRequestInput) error {
 	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, strings.TrimSpace(strings.ToLower(input.Email)))
 	if err != nil {
 		if !coreStore.IsNotFoundError(err) {
@@ -181,7 +181,7 @@ func (s *Service) resetPasswordRequest(ctx context.Context, input *ResetPassword
 	return nil
 }
 
-func (s *Service) loginUsernamePasswordAccount(
+func (s *service) loginUsernamePasswordAccount(
 	ctx context.Context,
 	input *LoginInput,
 ) (*model2.AuthenticatedInfo, error) {
@@ -216,7 +216,7 @@ func (s *Service) loginUsernamePasswordAccount(
 	return s.getAuthenticatedInfo(ctx, accountRole, user.ID, DeviceFromCtx(ctx))
 }
 
-func (s *Service) hashPassword(password string) (string, error) {
+func (s *service) hashPassword(password string) (string, error) {
 	hashedPw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("generate password hash: %w", err)
@@ -225,7 +225,7 @@ func (s *Service) hashPassword(password string) (string, error) {
 	return string(hashedPw), nil
 }
 
-func (s *Service) isPasswordMatched(password, hashedPassword string) bool {
+func (s *service) isPasswordMatched(password, hashedPassword string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
 		return false
 	}

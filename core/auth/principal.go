@@ -7,8 +7,10 @@ import (
 	"github.com/tuongaz/go-saas/pkg/log"
 )
 
+type PrincipalKey string
+
 var (
-	principalKey = "principal"
+	principalKey PrincipalKey = "principal"
 )
 
 func PrincipalToCtx(ctx context.Context, principal model.Principal) context.Context {
@@ -19,7 +21,9 @@ func PrincipalFromCtx(ctx context.Context) model.Principal {
 	p, ok := ctx.Value(principalKey).(model.Principal)
 	if !ok {
 		log.Default().ErrorContext(ctx, "principal not found in context")
-		panic("principal not found in context")
+		return model.Principal{
+			Role: model.Role(""),
+		}
 	}
 
 	return p

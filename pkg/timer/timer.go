@@ -27,3 +27,7 @@ func Now() time.Time {
 func NowString() string {
 	return Now().Format(time.RFC3339)
 }
+
+func SetDefaultTimer(timer Timer) {
+	DefaultTimer = timer
+}

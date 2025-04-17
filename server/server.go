@@ -1,19 +1,23 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
 	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/pkg/log"
 )
 
 type Server struct {
 	config  *config.Config
 	r       *chi.Mux
+	server  *http.Server
 	baseURL string
 }
 
@@ -31,9 +35,23 @@ func New(cfg *config.Config) *Server {
 		MaxAge:           cfg.CORSMaxAge,
 	}))
 
+	// Get base URL from config
+	baseURL := cfg.BaseURL
+
+	// Create HTTP server with proper timeouts
+	srv := &http.Server{
+		Addr:         ":" + cfg.ServerPort,
+		Handler:      r,
+		ReadTimeout:  120 * time.Second,
+		WriteTimeout: 120 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
 	return &Server{
-		config: cfg,
-		r:      r,
+		config:  cfg,
+		r:       r,
+		server:  srv,
+		baseURL: baseURL,
 	}
 }
 
@@ -42,12 +60,23 @@ func (s *Server) Router() *chi.Mux {
 }
 
 func (s *Server) Serve() error {
-	fmt.Printf("Server started at %s\n", ":"+s.config.ServerPort)
-	if err := http.ListenAndServe(":"+s.config.ServerPort, s.r); err != nil {
+	log.Info(fmt.Sprintf("Server started at http://127.0.0.1:%s", s.config.ServerPort))
+	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("server error: %w", err)
 	}
 
 	return nil
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(ctx context.Context) error {
+	log.Info("shutting down server")
+	return s.server.Shutdown(ctx)
+}
+
+// BaseURL returns the base URL of the server
+func (s *Server) BaseURL() string {
+	return s.baseURL
 }
 
 func (s *Server) PrintRoutes() {

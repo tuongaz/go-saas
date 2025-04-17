@@ -1,20 +1,23 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tuongaz/go-saas/config"
+	"github.com/tuongaz/go-saas/core/auth/model"
+	"github.com/tuongaz/go-saas/core/auth/store"
 	"github.com/tuongaz/go-saas/pkg/apierror"
 	"github.com/tuongaz/go-saas/pkg/oauth2"
 	"github.com/tuongaz/go-saas/pkg/oauth2/providers"
-	"github.com/tuongaz/go-saas/store"
+	coreStore "github.com/tuongaz/go-saas/store"
 
 	"github.com/tuongaz/go-saas/pkg/httputil"
 )
 
-func (s *Service) SetupAPI(router *chi.Mux) {
+func (s *service) SetupAPI(router *chi.Mux) {
 	authMiddleware := s.NewMiddleware()
 	deviceMiddleware := s.NewDeviceMiddleware()
 
@@ -34,17 +37,29 @@ func (s *Service) SetupAPI(router *chi.Mux) {
 
 		// private routes
 		r.With(authMiddleware).Get("/me", s.MeHandler)
+
+		// Organisation routes - use lowercase in URLs
+		r.With(authMiddleware).Route("/organisations", func(r chi.Router) {
+			r.Get("/", s.ListOrganisationsHandler)
+			r.Post("/", s.CreateOrganisationHandler)
+			r.Get("/{organisationID}", s.GetOrganisationHandler)
+			r.Put("/{organisationID}", s.UpdateOrganisationHandler)
+			r.Post("/{organisationID}/members", s.AddOrganisationMemberHandler)
+			r.Get("/{organisationID}/members", s.ListOrganisationMembersHandler)
+			r.Delete("/{organisationID}/members/{accountID}", s.RemoveOrganisationMemberHandler)
+			r.Put("/{organisationID}/members/{accountID}/role", s.UpdateOrganisationMemberRoleHandler)
+		})
 	})
 }
 
 // MeHandler returns the account information of the current authenticated user.
-func (s *Service) MeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) MeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	out, err := s.store.GetAccount(ctx, AccountID(ctx))
 	httputil.HandleResponse(ctx, w, out, err)
 }
 
-func (s *Service) Oauth2EnabledProvidersHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) Oauth2EnabledProvidersHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	enabledProviders := make([]string, 0, len(s.providers))
 	for provider := range s.providers {
@@ -56,7 +71,7 @@ func (s *Service) Oauth2EnabledProvidersHandler(w http.ResponseWriter, r *http.R
 }
 
 // Oauth2AuthenticateHandler redirects the user to the OAuth2 provider's login page.
-func (s *Service) Oauth2AuthenticateHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) Oauth2AuthenticateHandler(w http.ResponseWriter, r *http.Request) {
 	oauth2Config, _, err := s.getOauth2Config(r)
 	if err != nil {
 		httputil.HandleResponse(r.Context(), w, nil, err)
@@ -73,7 +88,7 @@ func (s *Service) Oauth2AuthenticateHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // Oauth2LoginSignupCallbackHandler handles the callback from the OAuth2 provider after the user has authenticated.
-func (s *Service) Oauth2LoginSignupCallbackHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) Oauth2LoginSignupCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	oauth2Config, oauth2Provider, err := s.getOauth2Config(r)
 	if err != nil {
 		httputil.HandleResponse(r.Context(), w, nil, err)
@@ -102,7 +117,7 @@ func (s *Service) Oauth2LoginSignupCallbackHandler(w http.ResponseWriter, r *htt
 }
 
 // SignupHandler creates a new account with a username and password.
-func (s *Service) SignupHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	input, err := httputil.ParseRequestBody[SignupInput](r)
@@ -116,7 +131,7 @@ func (s *Service) SignupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // LoginHandler logs in an account with a username and password.
-func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	input, err := httputil.ParseRequestBody[LoginInput](r)
@@ -129,21 +144,25 @@ func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	httputil.HandleResponse(ctx, w, authInfo, err)
 }
 
-func (s *Service) GetResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) GetResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("code is required", nil, nil))
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("Missing reset password code", nil))
 		return
 	}
 
-	req, err := s.store.GetResetPasswordRequest(ctx, code)
-	if store.IsNotFoundError(err) {
-		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("reset password request not found", nil))
+	resetPasswordReq, err := s.store.GetResetPasswordRequest(ctx, code)
+	if err != nil {
+		if coreStore.IsNotFoundError(err) {
+			httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("Invalid reset password code", nil))
+			return
+		}
+		httputil.HandleResponse(ctx, w, nil, err)
 		return
 	}
-	if req.IsExpired(s.cfg.ResetPasswordRequestExpiryMinutes) {
+
+	if resetPasswordReq.IsExpired(s.cfg.ResetPasswordRequestExpiryMinutes) {
 		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("reset password request expired", nil))
 		return
 	}
@@ -151,7 +170,7 @@ func (s *Service) GetResetPasswordHandler(w http.ResponseWriter, r *http.Request
 	httputil.HandleResponse(ctx, w, map[string]any{}, err)
 }
 
-func (s *Service) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	input, err := httputil.ParseRequestBody[ResetPasswordRequestInput](r)
@@ -164,7 +183,7 @@ func (s *Service) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	httputil.HandleResponse(ctx, w, nil, err)
 }
 
-func (s *Service) ResetPasswordConfirmHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) ResetPasswordConfirmHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	input, err := httputil.ParseRequestBody[ResetPasswordConfirmInput](r)
@@ -177,7 +196,7 @@ func (s *Service) ResetPasswordConfirmHandler(w http.ResponseWriter, r *http.Req
 	httputil.HandleResponse(ctx, w, nil, err)
 }
 
-func (s *Service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
+func (s *service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	refreshToken := r.URL.Query().Get("refresh_token")
 
@@ -185,7 +204,7 @@ func (s *Service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	httputil.HandleResponse(ctx, w, authInfo, err)
 }
 
-func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *config.OAuth2ProviderConfig, error) {
+func (s *service) getOauth2Config(r *http.Request) (*oauth2.Config, *config.OAuth2ProviderConfig, error) {
 	providerName := chi.URLParam(r, "provider")
 	oauthProvider, ok := s.providers[providerName]
 	if !ok {
@@ -198,4 +217,183 @@ func (s *Service) getOauth2Config(r *http.Request) (*oauth2.Config, *config.OAut
 		RedirectURL:  oauthProvider.RedirectURL,
 		Scopes:       oauthProvider.Scopes,
 	}, &oauthProvider, nil
+}
+
+// ListOrganisationsHandler returns a list of Organisations for the current authenticated user
+func (s *service) ListOrganisationsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	accountID := AccountID(ctx)
+
+	organisations, err := s.store.ListOrganisationsByAccountID(ctx, accountID)
+	httputil.HandleResponse(ctx, w, organisations, err)
+}
+
+// CreateOrganisationHandler creates a new Organisation with the current user as owner
+func (s *service) CreateOrganisationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	accountID := AccountID(ctx)
+
+	input, err := httputil.ParseRequestBody[store.CreateOrganisationInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Ensure the current user is set as owner
+	input.OwnerID = accountID
+
+	organisation, err := s.store.CreateOrganisation(ctx, *input)
+	httputil.HandleResponse(ctx, w, organisation, err)
+}
+
+// GetOrganisationHandler returns details of a specific Organisation
+func (s *service) GetOrganisationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+
+	// Verify the user has access to this Organisation
+	if err := s.verifyOrganisationAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	organisation, err := s.store.GetOrganisation(ctx, organisationID)
+	httputil.HandleResponse(ctx, w, organisation, err)
+}
+
+// UpdateOrganisationHandler updates an existing Organisation
+func (s *service) UpdateOrganisationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+
+	// Verify the user has owner access to this Organisation
+	if err := s.verifyOrganisationOwnerAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	input, err := httputil.ParseRequestBody[store.UpdateOrganisationInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Set the ID from the URL path parameter
+	input.ID = organisationID
+
+	organisation, err := s.store.UpdateOrganisation(ctx, *input)
+	httputil.HandleResponse(ctx, w, organisation, err)
+}
+
+// AddOrganisationMemberHandler adds a new member to an Organisation
+func (s *service) AddOrganisationMemberHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+
+	// Verify the user has owner access to this Organisation
+	if err := s.verifyOrganisationOwnerAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	input, err := httputil.ParseRequestBody[store.AddOrganisationMemberInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Set the Organisation ID from the URL path parameter
+	input.OrganisationID = organisationID
+
+	member, err := s.store.AddOrganisationMember(ctx, *input)
+	httputil.HandleResponse(ctx, w, member, err)
+}
+
+// ListOrganisationMembersHandler lists all members of an Organisation
+func (s *service) ListOrganisationMembersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+
+	// Verify the user has access to this Organisation
+	if err := s.verifyOrganisationAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	members, err := s.store.ListOrganisationMembers(ctx, organisationID)
+	httputil.HandleResponse(ctx, w, members, err)
+}
+
+// RemoveOrganisationMemberHandler removes a member from an Organisation
+func (s *service) RemoveOrganisationMemberHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+	accountID := chi.URLParam(r, "accountID")
+
+	// Verify the user has owner access to this Organisation
+	if err := s.verifyOrganisationOwnerAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	err := s.store.RemoveOrganisationMember(ctx, organisationID, accountID)
+	httputil.HandleResponse(ctx, w, nil, err)
+}
+
+// UpdateOrganisationMemberRoleHandler updates the role of a member in an Organisation
+func (s *service) UpdateOrganisationMemberRoleHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+	accountID := chi.URLParam(r, "accountID")
+
+	// Verify the user has owner access to this Organisation
+	if err := s.verifyOrganisationOwnerAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	input, err := httputil.ParseRequestBody[store.UpdateOrganisationMemberRoleInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Set the Organisation ID and Account ID from the URL path parameters
+	input.OrganisationID = organisationID
+	input.AccountID = accountID
+
+	member, err := s.store.UpdateOrganisationMemberRole(ctx, *input)
+	httputil.HandleResponse(ctx, w, member, err)
+}
+
+// Helper functions for Organisation access control
+
+// verifyOrganisationAccess verifies that the current user has access to the Organisation
+func (s *service) verifyOrganisationAccess(ctx context.Context, organisationID string) error {
+	accountID := AccountID(ctx)
+
+	// Check if the user is a member of the Organisation
+	_, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, organisationID, accountID)
+	if err != nil {
+		return apierror.NewForbiddenError("you do not have access to this Organisation", err)
+	}
+
+	return nil
+}
+
+// verifyOrganisationOwnerAccess verifies that the current user has owner access to the Organisation
+func (s *service) verifyOrganisationOwnerAccess(ctx context.Context, organisationID string) error {
+	accountID := AccountID(ctx)
+
+	// Check if the user is an owner of the Organisation
+	accRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, organisationID, accountID)
+	if err != nil {
+		return apierror.NewForbiddenError("you do not have access to this Organisation", err)
+	}
+
+	if model.Role(accRole.Role) != model.RoleOwner {
+		return apierror.NewForbiddenError("you do not have owner access to this Organisation", nil)
+	}
+
+	return nil
 }

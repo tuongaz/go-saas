@@ -9,6 +9,6 @@ type OnAccountCreatedEvent struct {
 	OrganisationID string
 }
 
-func (s *Service) OnAccountCreated() *hooks.Hook[*OnAccountCreatedEvent] {
+func (s *service) OnAccountCreated() *hooks.Hook[*OnAccountCreatedEvent] {
 	return s.onAccountCreated
 }

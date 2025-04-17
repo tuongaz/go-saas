@@ -11,17 +11,19 @@ import (
 	"github.com/tuongaz/go-saas/pkg/timer"
 	"github.com/tuongaz/go-saas/pkg/uid"
 	"github.com/tuongaz/go-saas/store"
+	"github.com/tuongaz/go-saas/store/types"
 )
 
 //go:embed postgres.sql
 var postgresSchema string
 
 const (
+	TableAccount      = "account"
+	TableOrganisation = "organisation"
+
 	tableLoginCredentialsUser              = "login_credentials_user"
 	tableLoginCredentialsUserResetPassword = "login_credentials_user_reset_password"
 	tableAccessToken                       = "access_token"
-	tableAccount                           = "account"
-	tableOrganisation                      = "organisation"
 	tableOrganisationAccountRole           = "organisation_account_role"
 	tableLoginProvider                     = "login_provider"
 )
@@ -89,6 +91,18 @@ type Interface interface {
 	GetAccountRoleByOrgAndAccountID(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error)
 	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error)
 	GetOrganisation(ctx context.Context, organisationID string) (*model.Organisation, error)
+
+	// Organisation operations
+	ListOrganisationsByAccountID(ctx context.Context, accountID string) ([]model.Organisation, error)
+	CreateOrganisation(ctx context.Context, input CreateOrganisationInput) (*model.Organisation, error)
+	UpdateOrganisation(ctx context.Context, input UpdateOrganisationInput) (*model.Organisation, error)
+	DeleteOrganisation(ctx context.Context, organisationID string) error
+
+	// Organisation member operations
+	AddOrganisationMember(ctx context.Context, input AddOrganisationMemberInput) (*model.AccountRole, error)
+	ListOrganisationMembers(ctx context.Context, organisationID string) ([]model.AccountRole, error)
+	RemoveOrganisationMember(ctx context.Context, organisationID, accountID string) error
+	UpdateOrganisationMemberRole(ctx context.Context, input UpdateOrganisationMemberRoleInput) (*model.AccountRole, error)
 }
 
 func New(store store.Interface) (*Store, error) {
@@ -96,9 +110,17 @@ func New(store store.Interface) (*Store, error) {
 		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
 
-	return &Store{
+	s := &Store{
 		store: store,
-	}, nil
+	}
+
+	// Run migrations
+	db := store.DB()
+	if err := RunMigrations(context.Background(), db); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return s, nil
 }
 
 type Store struct {
@@ -106,7 +128,7 @@ type Store struct {
 }
 
 func (s *Store) CreateAccessToken(ctx context.Context, input CreateAccessTokenInput) (*model.AccessToken, error) {
-	record, err := s.store.Collection(tableAccessToken).CreateRecord(ctx, store.Record{
+	record, err := s.store.Collection(tableAccessToken).CreateRecord(ctx, types.Record{
 		"id":               uid.ID(),
 		"refresh_token":    input.RefreshToken,
 		"account_role_id":  input.AccountRoleID,
@@ -131,7 +153,7 @@ func (s *Store) UpdateRefreshToken(ctx context.Context, id string, refreshToken 
 	_, err := s.store.Collection(tableAccessToken).UpdateRecord(
 		ctx,
 		id,
-		store.Record{"refresh_token": refreshToken, "updated_at": timer.Now()},
+		types.Record{"refresh_token": refreshToken, "updated_at": timer.Now()},
 	)
 	if err != nil {
 		return fmt.Errorf("update refresh token: %w", err)
@@ -216,7 +238,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		}
 	}()
 
-	var userRecord *store.Record
+	var userRecord *types.Record
 	if input.Provider == model.AuthProviderUsernamePassword {
 		found, err := s.LoginCredentialsUserEmailExists(ctx, input.Email)
 		if err != nil {
@@ -227,7 +249,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 			return nil, nil, nil, nil, fmt.Errorf("login credentials already exists")
 		}
 
-		userRecord = &store.Record{
+		userRecord = &types.Record{
 			"id":                                    uid.ID(),
 			"email":                                 input.Email,
 			"name":                                  input.Name,
@@ -240,7 +262,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		input.ProviderUserID = userRecord.Get("id").(string)
 	}
 
-	accountRecord := store.Record{
+	accountRecord := types.Record{
 		"id":                  uid.ID(),
 		"name":                input.Name,
 		"first_name":          input.FirstName,
@@ -251,13 +273,18 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		"updated_at":          timer.Now(),
 	}
 
-	orgRecord := store.Record{
-		"id":         uid.ID(),
-		"created_at": timer.Now(),
-		"updated_at": timer.Now(),
+	orgRecord := types.Record{
+		"id":          uid.ID(),
+		"name":        input.Name,
+		"description": "",
+		"avatar":      "",
+		"metadata":    "{}",
+		"owner_id":    accountRecord.Get("id"),
+		"created_at":  timer.Now(),
+		"updated_at":  timer.Now(),
 	}
 
-	accRoleRecord := store.Record{
+	accRoleRecord := types.Record{
 		"id":              uid.ID(),
 		"organisation_id": orgRecord.Get("id"),
 		"account_id":      accountRecord.Get("id"),
@@ -266,7 +293,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		"updated_at":      timer.Now(),
 	}
 
-	loginProviderRecord := store.Record{
+	loginProviderRecord := types.Record{
 		"id":               uid.ID(),
 		"name":             input.Name,
 		"provider":         input.Provider,
@@ -285,7 +312,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		}
 	}
 
-	if _, err := tx.Collection(tableAccount).CreateRecord(ctx, accountRecord); err != nil {
+	if _, err := tx.Collection(TableAccount).CreateRecord(ctx, accountRecord); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("create account: %w", err)
 	}
 
@@ -294,7 +321,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 		return nil, nil, nil, nil, err
 	}
 
-	if _, err := tx.Collection(tableOrganisation).CreateRecord(ctx, orgRecord); err != nil {
+	if _, err := tx.Collection(TableOrganisation).CreateRecord(ctx, orgRecord); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("create organisation: %w", err)
 	}
 
@@ -329,7 +356,7 @@ func (s *Store) CreateOwnerAccount(ctx context.Context, input CreateOwnerAccount
 }
 
 func (s *Store) GetAccount(ctx context.Context, accountID string) (*model.Account, error) {
-	record, err := s.store.Collection(tableAccount).GetRecord(ctx, accountID)
+	record, err := s.store.Collection(TableAccount).GetRecord(ctx, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("get account: %w", err)
 	}
@@ -387,20 +414,6 @@ func (s *Store) GetAccountRoleByOrgAndAccountID(ctx context.Context, organisatio
 	return accountRole, nil
 }
 
-func (s *Store) GetOrganisation(ctx context.Context, organisationID string) (*model.Organisation, error) {
-	record, err := s.store.Collection(tableOrganisation).GetRecord(ctx, organisationID)
-	if err != nil {
-		return nil, fmt.Errorf("get organisation: %w", err)
-	}
-
-	org := &model.Organisation{}
-	if err := record.Decode(org); err != nil {
-		return nil, err
-	}
-
-	return org, nil
-}
-
 func (s *Store) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error) {
 	record, err := s.store.Collection(tableOrganisationAccountRole).FindOne(ctx, store.Filter{
 		"account_id": accountID,
@@ -416,7 +429,7 @@ func (s *Store) GetOrganisationByAccountIDAndRole(ctx context.Context, accountID
 }
 
 func (s *Store) CreateResetPasswordRequest(ctx context.Context, userID, code string) (*model.ResetPasswordRequest, error) {
-	record, err := s.store.Collection(tableLoginCredentialsUserResetPassword).CreateRecord(ctx, store.Record{
+	record, err := s.store.Collection(tableLoginCredentialsUserResetPassword).CreateRecord(ctx, types.Record{
 		"id":         uid.ID(),
 		"user_id":    userID,
 		"code":       code,
@@ -436,7 +449,7 @@ func (s *Store) CreateResetPasswordRequest(ctx context.Context, userID, code str
 }
 
 func (s *Store) UpdateResetPasswordReceipt(ctx context.Context, id string, receipt string) error {
-	_, err := s.store.Collection(tableLoginCredentialsUserResetPassword).UpdateRecord(ctx, id, store.Record{
+	_, err := s.store.Collection(tableLoginCredentialsUserResetPassword).UpdateRecord(ctx, id, types.Record{
 		"receipt":    receipt,
 		"updated_at": timer.Now(),
 	})
@@ -462,7 +475,7 @@ func (s *Store) GetResetPasswordRequest(ctx context.Context, code string) (*mode
 }
 
 func (s *Store) UpdateLoginCredentialsUserPassword(ctx context.Context, userID, password string) error {
-	_, err := s.store.Collection(tableLoginCredentialsUser).UpdateRecord(ctx, userID, store.Record{
+	_, err := s.store.Collection(tableLoginCredentialsUser).UpdateRecord(ctx, userID, types.Record{
 		"password":   password,
 		"updated_at": timer.Now(),
 	})

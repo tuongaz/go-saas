@@ -13,10 +13,11 @@ const (
 )
 
 type Config struct {
-	Environment   string `mapstructure:"GOS_ENVIRONMENT"`
-	BaseURL       string `mapstructure:"GOS_BASE_URL"`
-	ServerPort    string `mapstructure:"GOS_SERVER_PORT" validate:"required,port"`
-	EncryptionKey string `mapstructure:"GOS_ENCRYPTION_KEY"`
+	Environment     string `mapstructure:"GOS_ENVIRONMENT"`
+	BaseURL         string `mapstructure:"GOS_BASE_URL"`
+	PublicServerURL string `mapstructure:"GOS_PUBLIC_SERVER_URL"`
+	ServerPort      string `mapstructure:"GOS_SERVER_PORT" validate:"required,port"`
+	EncryptionKey   string `mapstructure:"GOS_ENCRYPTION_KEY"`
 
 	// Datasource, credentials
 	PostgresDataSource string `mapstructure:"GOS_POSTGRES_DATASOURCE"`
@@ -52,10 +53,10 @@ func New() (*Config, error) {
 	SetDefault("GOS_ENVIRONMENT", "")
 	SetDefault("GOS_SERVER_PORT", "8080")
 	SetDefault("GOS_BASE_URL", "http://localhost:5173")
+	SetDefault("GOS_PUBLIC_SERVER_URL", "http://localhost:"+viper.GetString("GOS_SERVER_PORT"))
 	SetDefault("GOS_ENCRYPTION_KEY", defaultEncryptionKey)
 
 	SetDefault("GOS_POSTGRES_DATASOURCE", "")
-	SetDefault("GOS_DB_NAME", "gosaas")
 	SetDefault("GOS_EMAIL_FROM", "")
 
 	// CORS
