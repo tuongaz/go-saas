@@ -1,0 +1,6 @@
+* Go-Saas is a Golang web framework that built to support anyone to build SaaS applications quicker.
+* It is built on top of Chi, a fast and modern web framework for Go.
+* It must be extensible and flexible enough to support any SaaS application.
+* It must be secure and reliable.
+* It must provide a set of common features that are needed for any SaaS application.
+* It must be easy to use and configure.
