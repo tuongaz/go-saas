@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	serverMiddleware "github.com/tuongaz/go-saas/server/middleware"
 
 	"github.com/tuongaz/go-saas/config"
 	"github.com/tuongaz/go-saas/pkg/log"
@@ -33,6 +34,7 @@ func New(cfg *config.Config, middlewares ...func(http.Handler) http.Handler) *Se
 		AllowCredentials: cfg.CORSAllowCredentials,
 		MaxAge:           cfg.CORSMaxAge,
 	}))
+	r.Use(serverMiddleware.RateLimiterMiddleware(1000, time.Second)) // just to make sure rate limiter is enabled. TODO: option to remove this
 
 	for _, m := range middlewares {
 		r.Use(m)
