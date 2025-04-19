@@ -77,6 +77,7 @@ type Interface interface {
 	GetResetPasswordRequest(ctx context.Context, code string) (*model.ResetPasswordRequest, error)
 	UpdateLoginCredentialsUserPassword(ctx context.Context, userID, password string) error
 	DeleteResetPasswordRequest(ctx context.Context, id string) error
+	GetLoginProviderByAccountID(ctx context.Context, accountID, provider string) (*model.LoginProvider, error)
 
 	CreateOwnerAccount(ctx context.Context, input CreateOwnerAccountInput) (
 		*model.Account,
@@ -492,4 +493,21 @@ func (s *Store) DeleteResetPasswordRequest(ctx context.Context, id string) error
 	}
 
 	return nil
+}
+
+func (s *Store) GetLoginProviderByAccountID(ctx context.Context, accountID, provider string) (*model.LoginProvider, error) {
+	record, err := s.store.Collection(tableLoginProvider).FindOne(ctx, store.Filter{
+		"account_id": accountID,
+		"provider":   provider,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get login provider by account id: %w", err)
+	}
+
+	loginProvider := &model.LoginProvider{}
+	if err := record.Decode(loginProvider); err != nil {
+		return nil, err
+	}
+
+	return loginProvider, nil
 }

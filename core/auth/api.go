@@ -37,6 +37,7 @@ func (s *service) SetupAPI(router *chi.Mux) {
 
 		// private routes
 		r.With(authMiddleware).Get("/me", s.MeHandler)
+		r.With(authMiddleware).Post("/change-password", s.ChangePasswordHandler)
 
 		// Organisation routes - use lowercase in URLs
 		r.With(authMiddleware).Route("/organisations", func(r chi.Router) {
@@ -396,4 +397,27 @@ func (s *service) verifyOrganisationOwnerAccess(ctx context.Context, organisatio
 	}
 
 	return nil
+}
+
+// ChangePasswordHandler handles the change password request for authenticated users
+func (s *service) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	
+	// Get the account ID from the context
+	accountID := AccountID(ctx)
+	if accountID == "" {
+		httputil.HandleResponse(ctx, w, nil, apierror.NewUnauthorizedErr("not authenticated", nil))
+		return
+	}
+
+	// Parse request body
+	input, err := httputil.ParseRequestBody[ChangePasswordInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Change password
+	err = s.changePassword(ctx, accountID, input)
+	httputil.HandleResponse(ctx, w, map[string]any{"success": err == nil}, err)
 }

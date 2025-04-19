@@ -37,6 +37,11 @@ type ResetPasswordConfirmInput struct {
 	Password string `json:"password"`
 }
 
+type ChangePasswordInput struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 func (s *service) signupUsernamePasswordAccount(
 	ctx context.Context,
 	input *SignupInput,
@@ -226,11 +231,44 @@ func (s *service) hashPassword(password string) (string, error) {
 }
 
 func (s *service) isPasswordMatched(password, hashedPassword string) bool {
-	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
-		return false
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)) == nil
+}
+
+func (s *service) changePassword(ctx context.Context, accountID string, input *ChangePasswordInput) error {
+	// Find login providers for this account with username_password provider
+	// Query login_provider table for the account record
+	loginProviders, err := s.store.GetLoginProviderByAccountID(ctx, accountID, model2.AuthProviderUsernamePassword)
+	if err != nil {
+		return fmt.Errorf("auth: change password - get login providers: %w", err)
 	}
 
-	return true
+	// Check if username_password provider exists
+	if loginProviders == nil {
+		return apierror.NewValidationError("account does not have a username/password login method", nil)
+	}
+
+	// Get the login credentials user using the provider user ID
+	user, err := s.store.GetLoginCredentialsUserByEmail(ctx, loginProviders.Email)
+	if err != nil {
+		return fmt.Errorf("auth: change password - get user: %w", err)
+	}
+
+	// Verify current password
+	if !s.isPasswordMatched(input.CurrentPassword, user.Password) {
+		return apierror.NewValidationError("current password is incorrect", nil)
+	}
+
+	// Hash and update new password
+	hashedPw, err := s.hashPassword(input.NewPassword)
+	if err != nil {
+		return fmt.Errorf("auth: change password - hash password: %w", err)
+	}
+
+	if err := s.store.UpdateLoginCredentialsUserPassword(ctx, user.ID, hashedPw); err != nil {
+		return fmt.Errorf("auth: change password - update password: %w", err)
+	}
+
+	return nil
 }
 
 func splitName(name string) (string, string) {
