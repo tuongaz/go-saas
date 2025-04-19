@@ -69,7 +69,7 @@ func New() (*Config, error) {
 
 	SetDefault("GOS_JWT_SIGNING_SECRET", 300)
 	SetDefault("GOS_JWT_ISSUER", 300)
-	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 15*60) // 15 minutes
+	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 60*60) // 1 hour
 	SetDefault("GOS_RESET_PASSWORD_REQUEST_EXPIRY_MINUTES", 30)
 
 	// Mailer
