@@ -151,8 +151,6 @@ func (s *service) resetPasswordRequest(ctx context.Context, input *ResetPassword
     <p>You requested to reset your password. Please click the link below to reset it:</p>
     <p><a href="{{.reset_link}}">Reset Password</a></p>
     <p>If you didn't request a password reset, please ignore this email.</p>
-    <p>Thanks,</p>
-    <p>The Team</p>
 </body>
 </html>
 `
