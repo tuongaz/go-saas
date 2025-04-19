@@ -38,6 +38,7 @@ func (s *service) SetupAPI(router *chi.Mux) {
 		// private routes
 		r.With(authMiddleware).Get("/me", s.MeHandler)
 		r.With(authMiddleware).Post("/change-password", s.ChangePasswordHandler)
+		r.With(authMiddleware).Put("/account", s.UpdateAccountHandler)
 
 		// Organisation routes - use lowercase in URLs
 		r.With(authMiddleware).Route("/organisations", func(r chi.Router) {
@@ -203,6 +204,12 @@ func (s *service) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	authInfo, err := s.RefreshToken(ctx, refreshToken)
 	httputil.HandleResponse(ctx, w, authInfo, err)
+}
+
+type UpdateAccountInput struct {
+	Name               string `json:"name" validate:"required"`
+	CommunicationEmail string `json:"communication_email" validate:"required,email"`
+	Avatar             string `json:"avatar"`
 }
 
 func (s *service) getOauth2Config(r *http.Request) (*oauth2.Config, *config.OAuth2ProviderConfig, error) {
@@ -402,7 +409,7 @@ func (s *service) verifyOrganisationOwnerAccess(ctx context.Context, organisatio
 // ChangePasswordHandler handles the change password request for authenticated users
 func (s *service) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	// Get the account ID from the context
 	accountID := AccountID(ctx)
 	if accountID == "" {
@@ -420,4 +427,30 @@ func (s *service) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) 
 	// Change password
 	err = s.changePassword(ctx, accountID, input)
 	httputil.HandleResponse(ctx, w, map[string]any{"success": err == nil}, err)
+}
+
+// UpdateAccountHandler updates the authenticated user's account information
+func (s *service) UpdateAccountHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	input, err := httputil.ParseRequestBody[UpdateAccountInput](r)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	accountID := AccountID(ctx)
+	account, err := s.store.GetAccount(ctx, accountID)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Update the account fields
+	account.Name = input.Name
+	account.CommunicationEmail = input.CommunicationEmail
+	account.Avatar = input.Avatar
+
+	updatedAccount, err := s.store.UpdateAccount(ctx, accountID, account)
+	httputil.HandleResponse(ctx, w, updatedAccount, err)
 }

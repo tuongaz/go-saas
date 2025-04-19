@@ -92,6 +92,7 @@ type Interface interface {
 	GetAccountRoleByOrgAndAccountID(ctx context.Context, organisationID, accountID string) (*model.AccountRole, error)
 	GetOrganisationByAccountIDAndRole(ctx context.Context, accountID, role string) (*model.Organisation, error)
 	GetOrganisation(ctx context.Context, organisationID string) (*model.Organisation, error)
+	UpdateAccount(ctx context.Context, accountID string, account *model.Account) (*model.Account, error)
 
 	// Organisation operations
 	ListOrganisationsByAccountID(ctx context.Context, accountID string) ([]model.Organisation, error)
@@ -510,4 +511,25 @@ func (s *Store) GetLoginProviderByAccountID(ctx context.Context, accountID, prov
 	}
 
 	return loginProvider, nil
+}
+
+func (s *Store) UpdateAccount(ctx context.Context, accountID string, account *model.Account) (*model.Account, error) {
+	record, err := s.store.Collection(TableAccount).UpdateRecord(ctx, accountID, types.Record{
+		"name":                account.Name,
+		"first_name":          account.FirstName,
+		"last_name":           account.LastName,
+		"avatar":              account.Avatar,
+		"communication_email": account.CommunicationEmail,
+		"updated_at":          timer.Now(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("update account: %w", err)
+	}
+
+	updatedAccount := &model.Account{}
+	if err := record.Decode(updatedAccount); err != nil {
+		return nil, err
+	}
+
+	return updatedAccount, nil
 }
