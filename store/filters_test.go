@@ -52,32 +52,47 @@ func TestFilterCondition(t *testing.T) {
 
 func TestAdvancedFilter(t *testing.T) {
 	// Create conditions
-	conditions := []FilterCondition{
-		{
-			Field: "name",
-			Op:    FilterOpEqual,
-			Value: "John",
-		},
-		{
-			Field: "age",
-			Op:    FilterOpGreaterEqual,
-			Value: 30,
-		},
-	}
+	name := NewCondition("name", FilterOpEqual, "John")
+	age := NewCondition("age", FilterOpGreaterEqual, 30)
 
-	// Create an advanced filter
+	// Create an AND group
+	andGroup := NewAndGroup(name, age)
+
+	// Create an advanced filter with AND group
 	advancedFilter := AdvancedFilter{
-		Conditions: conditions,
+		Expression: andGroup,
 	}
 
-	// Assert the filter conditions
-	assert.Len(t, advancedFilter.Conditions, 2)
-	assert.Equal(t, "name", advancedFilter.Conditions[0].Field)
-	assert.Equal(t, FilterOpEqual, advancedFilter.Conditions[0].Op)
-	assert.Equal(t, "John", advancedFilter.Conditions[0].Value)
-	assert.Equal(t, "age", advancedFilter.Conditions[1].Field)
-	assert.Equal(t, FilterOpGreaterEqual, advancedFilter.Conditions[1].Op)
-	assert.Equal(t, 30, advancedFilter.Conditions[1].Value)
+	// Assert the filter expression type
+	assert.Equal(t, FilterExprTypeGroup, andGroup.Type())
+
+	// Check the group attributes
+	group := advancedFilter.Expression.(FilterGroup)
+	assert.Equal(t, LogicOpAnd, group.Logic)
+	assert.Len(t, group.Expressions, 2)
+
+	// Check the first condition (name = "John")
+	cond1 := group.Expressions[0].(FilterCondition)
+	assert.Equal(t, "name", cond1.Field)
+	assert.Equal(t, FilterOpEqual, cond1.Op)
+	assert.Equal(t, "John", cond1.Value)
+
+	// Check the second condition (age >= 30)
+	cond2 := group.Expressions[1].(FilterCondition)
+	assert.Equal(t, "age", cond2.Field)
+	assert.Equal(t, FilterOpGreaterEqual, cond2.Op)
+	assert.Equal(t, 30, cond2.Value)
+
+	// Create an OR group
+	orGroup := NewOrGroup(
+		NewCondition("status", FilterOpEqual, "active"),
+		NewCondition("status", FilterOpEqual, "pending"),
+	)
+
+	// Assert the OR group
+	assert.Equal(t, FilterExprTypeGroup, orGroup.Type())
+	assert.Equal(t, LogicOpOr, orGroup.Logic)
+	assert.Len(t, orGroup.Expressions, 2)
 }
 
 func TestSortDirection(t *testing.T) {

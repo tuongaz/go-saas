@@ -32,42 +32,90 @@ func buildQuery(baseQuery string, filter Filter) (string, []any) {
 
 // buildAdvancedQuery constructs a SQL query with advanced filtering options
 func buildAdvancedQuery(baseQuery string, filter AdvancedFilter) (string, []any) {
-	if len(filter.Conditions) == 0 {
+	if filter.Expression == nil {
 		return baseQuery, nil
 	}
 
-	var parts []string
-	var args []any
-	i := 1
-
-	for _, condition := range filter.Conditions {
-		switch condition.Op {
-		case FilterOpIsNull:
-			parts = append(parts, fmt.Sprintf("%s IS NULL", condition.Field))
-		case FilterOpIsNotNull:
-			parts = append(parts, fmt.Sprintf("%s IS NOT NULL", condition.Field))
-		case FilterOpIn, FilterOpNotIn:
-			// Handle array values for IN/NOT IN operations
-			if values, ok := condition.Value.([]any); ok && len(values) > 0 {
-				placeholders := make([]string, len(values))
-				for j := range values {
-					placeholders[j] = fmt.Sprintf("$%d", i)
-					args = append(args, values[j])
-					i++
-				}
-				parts = append(parts, fmt.Sprintf("%s %s (%s)",
-					condition.Field,
-					condition.Op,
-					strings.Join(placeholders, ", ")))
-			}
-		default:
-			parts = append(parts, fmt.Sprintf("%s %s $%d", condition.Field, condition.Op, i))
-			args = append(args, condition.Value)
-			i++
-		}
+	whereClause, args := buildFilterExpression(filter.Expression, 1)
+	if whereClause != "" {
+		return baseQuery + " WHERE " + whereClause, args
 	}
 
-	return baseQuery + " WHERE " + strings.Join(parts, " AND "), args
+	return baseQuery, nil
+}
+
+// buildFilterExpression recursively builds SQL for a filter expression
+func buildFilterExpression(expr FilterExpression, startIdx int) (string, []any) {
+	switch expr.Type() {
+	case FilterExprTypeCondition:
+		condition := expr.(FilterCondition)
+		clause, args, _ := buildConditionClause(condition, startIdx)
+		return clause, args
+
+	case FilterExprTypeGroup:
+		group := expr.(FilterGroup)
+		var parts []string
+		var allArgs []any
+		idx := startIdx
+
+		for _, subExpr := range group.Expressions {
+			part, args := buildFilterExpression(subExpr, idx)
+			if part != "" {
+				parts = append(parts, part)
+				allArgs = append(allArgs, args...)
+				idx += len(args)
+			}
+		}
+
+		if len(parts) == 0 {
+			return "", nil
+		}
+
+		// Determine the logical operator
+		logicOp := " AND "
+		if group.Logic == LogicOpOr {
+			logicOp = " OR "
+		}
+
+		// Wrap the conditions in parentheses
+		return "(" + strings.Join(parts, logicOp) + ")", allArgs
+	}
+
+	return "", nil
+}
+
+// buildConditionClause builds a SQL clause for a single condition
+func buildConditionClause(condition FilterCondition, idx int) (string, []any, int) {
+	var clause string
+	var args []any
+	nextIdx := idx
+
+	switch condition.Op {
+	case FilterOpIsNull:
+		clause = fmt.Sprintf("%s IS NULL", condition.Field)
+	case FilterOpIsNotNull:
+		clause = fmt.Sprintf("%s IS NOT NULL", condition.Field)
+	case FilterOpIn, FilterOpNotIn:
+		// Handle array values for IN/NOT IN operations
+		if values, ok := condition.Value.([]any); ok && len(values) > 0 {
+			placeholders := make([]string, len(values))
+			for j := range values {
+				placeholders[j] = fmt.Sprintf("$%d", nextIdx)
+				args = append(args, values[j])
+				nextIdx++
+			}
+			clause = fmt.Sprintf("%s %s (%s)",
+				condition.Field,
+				condition.Op,
+				strings.Join(placeholders, ", "))
+		}
+	default:
+		clause = fmt.Sprintf("%s %s $%d", condition.Field, condition.Op, nextIdx)
+		args = append(args, condition.Value)
+		nextIdx++
+	}
+
+	return clause, args, nextIdx
 }
 
 // RawQueryOptions represents options for raw SQL queries

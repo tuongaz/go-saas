@@ -39,17 +39,42 @@ func WithFilter(filter Filter) FindOption {
 //
 // Example:
 //
-//	advFilter := AdvancedFilter{
-//	  Conditions: []FilterCondition{
-//	    {Field: "age", Op: FilterOpGreater, Value: 21},
-//	    {Field: "status", Op: FilterOpEqual, Value: "active"},
-//	  },
-//	}
-//	WithAdvancedFilter(advFilter)
-func WithAdvancedFilter(filter AdvancedFilter) FindOption {
+//	WithAdvancedFilter(
+//	  NewOrGroup(
+//	    NewCondition("status", FilterOpEqual, "active"),
+//	    NewCondition("status", FilterOpEqual, "pending"),
+//	  ),
+//	)
+func WithAdvancedFilter(expression FilterExpression) FindOption {
 	return func(o *FindOptions) {
-		o.AdvancedFilter = &filter
+		o.AdvancedFilter = &AdvancedFilter{
+			Expression: expression,
+		}
 	}
+}
+
+// WithAndGroup creates a filter group with AND logic
+//
+// Example:
+//
+//	WithAndGroup(
+//	  NewCondition("age", FilterOpGreater, 21),
+//	  NewCondition("status", FilterOpEqual, "active"),
+//	)
+func WithAndGroup(expressions ...FilterExpression) FindOption {
+	return WithAdvancedFilter(NewAndGroup(expressions...))
+}
+
+// WithOrGroup creates a filter group with OR logic
+//
+// Example:
+//
+//	WithOrGroup(
+//	  NewCondition("status", FilterOpEqual, "active"),
+//	  NewCondition("status", FilterOpEqual, "pending"),
+//	)
+func WithOrGroup(expressions ...FilterExpression) FindOption {
+	return WithAdvancedFilter(NewOrGroup(expressions...))
 }
 
 // WithFields sets specific fields/columns to retrieve instead of all columns.
