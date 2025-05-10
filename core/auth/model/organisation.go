@@ -13,6 +13,7 @@ type Organisation struct {
 	Avatar      *string          `json:"avatar" db:"avatar"`
 	Metadata    *json.RawMessage `json:"metadata,omitempty" db:"metadata"`
 	OwnerID     string           `json:"owner_id" db:"owner_id"`
+	IsArchived  bool             `json:"is_archived" db:"is_archived"`
 	CreatedAt   time.Time        `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time        `json:"updated_at" db:"updated_at"`
 }
