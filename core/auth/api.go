@@ -48,6 +48,7 @@ func (s *service) SetupAPI(router *chi.Mux) {
 			r.Put("/{organisationID}", s.UpdateOrganisationHandler)
 			r.Post("/{organisationID}/members", s.AddOrganisationMemberHandler)
 			r.Get("/{organisationID}/members", s.ListOrganisationMembersHandler)
+			r.Post("/{organisationID}/archive", s.ArchiveOrganisationHandler)
 			r.Delete("/{organisationID}/members/{accountID}", s.RemoveOrganisationMemberHandler)
 			r.Put("/{organisationID}/members/{accountID}/role", s.UpdateOrganisationMemberRoleHandler)
 		})
@@ -453,4 +454,41 @@ func (s *service) UpdateAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 	updatedAccount, err := s.store.UpdateAccount(ctx, accountID, account)
 	httputil.HandleResponse(ctx, w, updatedAccount, err)
+}
+
+// ArchiveOrganisationHandler archives an Organisation
+func (s *service) ArchiveOrganisationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+	accountID := AccountID(ctx)
+
+	// Verify the user has access to this Organisation
+	if err := s.verifyOrganisationAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Check if the account is the owner of the organisation
+	accRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, organisationID, accountID)
+	if err == nil && model.Role(accRole.Role) == model.RoleOwner {
+		// Cannot archive an organisation if the requester is the owner
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("cannot archive an organisation where you are the owner", nil))
+		return
+	}
+
+	// Create the update with archived flag set to true
+	isArchived := true
+	input := &store.UpdateOrganisationInput{
+		ID:         organisationID,
+		IsArchived: &isArchived,
+	}
+
+	// Update the organisation to mark it as archived
+	organisation, err := s.store.UpdateOrganisation(ctx, *input)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	httputil.HandleResponse(ctx, w, organisation, nil)
 }
