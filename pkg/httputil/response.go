@@ -8,6 +8,7 @@ import (
 
 	"github.com/tuongaz/go-saas/pkg/apierror"
 	"github.com/tuongaz/go-saas/pkg/log"
+	"github.com/tuongaz/go-saas/store"
 )
 
 type Response struct {
@@ -15,6 +16,11 @@ type Response struct {
 }
 
 func (r *Response) Error(ctx context.Context, err error) {
+	if store.IsNotFoundError(err) {
+		r.JSON(map[string]string{"message": "not found"}, http.StatusNotFound)
+		return
+	}
+
 	log.Default().ErrorContext(ctx, "internal server error", log.ErrorAttr(err))
 	r.JSON(map[string]string{"message": "internal server error"}, http.StatusInternalServerError)
 }
@@ -34,13 +40,10 @@ func (r *Response) JSON(body any, status ...int) {
 		switch b := body.(type) {
 		case []byte:
 			_, _ = r.w.Write(b)
-			break
 		case string:
 			_, _ = r.w.Write([]byte(b))
-			break
 		case *string:
 			_, _ = r.w.Write([]byte(*b))
-			break
 		default:
 			data, err := json.Marshal(body)
 			if err != nil {
