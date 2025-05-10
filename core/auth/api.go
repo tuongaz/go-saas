@@ -470,9 +470,26 @@ func (s *service) ArchiveOrganisationHandler(w http.ResponseWriter, r *http.Requ
 
 	// Check if the account is the owner of the organisation
 	accRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, organisationID, accountID)
-	if err == nil && model.Role(accRole.Role) == model.RoleOwner {
-		// Cannot archive an organisation if the requester is the owner
-		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("cannot archive an organisation where you are the owner", nil))
+	if err == nil && model.Role(accRole.Role) != model.RoleOwner {
+		// Cannot archive an organisation if the requester is not the owner
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("cannot archive an organisation where you are not the owner", nil))
+		return
+	}
+
+	// make sure this is not the last organisation you own
+	orgs, err := s.store.ListOrganisationsByAccountID(ctx, accountID)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+	ownedOrgCount := 0
+	for _, org := range orgs {
+		if org.OwnerID == accountID {
+			ownedOrgCount++
+		}
+	}
+	if ownedOrgCount == 1 {
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("cannot archive the last organisation you own", nil))
 		return
 	}
 
