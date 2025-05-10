@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS organisation
     description TEXT,
     avatar     TEXT,
     metadata   JSONB,
+    is_archived BOOLEAN DEFAULT FALSE,
     owner_id   TEXT NOT NULL REFERENCES account(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL

@@ -41,6 +41,7 @@ type UpdateOrganisationInput struct {
 	Description *string          `json:"description,omitempty"`
 	Avatar      *string          `json:"avatar,omitempty"`
 	Metadata    *json.RawMessage `json:"metadata,omitempty"`
+	IsArchived  *bool            `json:"is_archived,omitempty"`
 }
 
 // AddOrganisationMemberInput defines the input for adding a member to an Organisation

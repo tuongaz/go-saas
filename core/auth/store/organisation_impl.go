@@ -143,6 +143,11 @@ func (s *Store) UpdateOrganisation(ctx context.Context, input UpdateOrganisation
 		updateRecord["metadata"] = *input.Metadata
 	}
 
+	// Handle archiving an organization
+	if input.IsArchived != nil {
+		updateRecord["is_archived"] = *input.IsArchived
+	}
+
 	record, err := s.store.Collection(TableOrganisation).UpdateRecord(ctx, input.ID, updateRecord)
 	if err != nil {
 		return nil, fmt.Errorf("update organisation: %w", err)

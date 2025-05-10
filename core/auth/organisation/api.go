@@ -31,6 +31,7 @@ func (s *Service) SetupAPI(router chi.Router, authMiddleware func(http.Handler) 
 		r.Get("/{organisationID}", s.GetOrganisationHandler)
 		r.Put("/{organisationID}", s.UpdateOrganisationHandler)
 		r.Delete("/{organisationID}", s.DeleteOrganisationHandler)
+		r.Post("/{organisationID}/archive", s.ArchiveOrganisationHandler)
 		r.Post("/{organisationID}/members", s.AddOrganisationMemberHandler)
 		r.Get("/{organisationID}/members", s.ListOrganisationMembersHandler)
 		r.Delete("/{organisationID}/members/{accountID}", s.RemoveOrganisationMemberHandler)
@@ -117,6 +118,43 @@ func (s *Service) DeleteOrganisationHandler(w http.ResponseWriter, r *http.Reque
 
 	err := s.store.DeleteOrganisation(ctx, organisationID)
 	httputil.HandleResponse(ctx, w, nil, err)
+}
+
+// ArchiveOrganisationHandler archives an Organisation
+func (s *Service) ArchiveOrganisationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organisationID := chi.URLParam(r, "organisationID")
+	accountID := auth.AccountID(ctx)
+
+	// Verify the user has access to this Organisation
+	if err := s.verifyOrganisationAccess(ctx, organisationID); err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	// Check if the account is the owner of the organisation
+	accRole, err := s.store.GetAccountRoleByOrgAndAccountID(ctx, organisationID, accountID)
+	if err == nil && model.Role(accRole.Role) == model.RoleOwner {
+		// Cannot archive an organisation if the requester is the owner
+		httputil.HandleResponse(ctx, w, nil, apierror.NewValidationError("cannot archive an organisation where you are the owner", nil))
+		return
+	}
+
+	// Create the update with archived flag set to true
+	isArchived := true
+	input := &UpdateOrganisationInput{
+		ID:         organisationID,
+		IsArchived: &isArchived,
+	}
+
+	// Update the organisation to mark it as archived
+	organisation, err := s.store.UpdateOrganisation(ctx, *input)
+	if err != nil {
+		httputil.HandleResponse(ctx, w, nil, err)
+		return
+	}
+
+	httputil.HandleResponse(ctx, w, organisation, nil)
 }
 
 // AddOrganisationMemberHandler adds a new member to an Organisation
