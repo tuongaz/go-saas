@@ -219,6 +219,11 @@ func (a *App) Start() error {
 
 	a.server = server.New(a.Config(), a.serverMiddlewares...)
 
+	// setup a health check endpoint
+	a.server.Router().Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	// Setup the auth API using the existing auth service
 	a.auth.SetupAPI(a.server.Router())
 
