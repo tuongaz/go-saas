@@ -229,7 +229,9 @@ func (a *App) Start() error {
 
 	// setup a health check endpoint
 	a.server.Router().Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"healthy": true}`))
 	})
 
 	if err := a.OnBeforeServe().Trigger(
