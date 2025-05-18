@@ -231,7 +231,7 @@ func (a *App) Start() error {
 	a.server.Router().Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"healthy": true}`))
+		w.Write([]byte(fmt.Sprintf(`{"healthy": true, "version": "%s"}`, os.Getenv("COMMIT_HASH"))))
 	})
 
 	if err := a.OnBeforeServe().Trigger(
