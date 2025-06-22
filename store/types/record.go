@@ -148,6 +148,9 @@ func (r Record) PrepareForDB() (keys []string, values []any, placeholders []stri
 		switch value := v.(type) {
 		case string, int, int64, float64, bool:
 			values = append(values, v)
+		case time.Time:
+			// Convert time to UTC before storing
+			values = append(values, value.UTC())
 		case nil:
 			// Explicitly handle nil as NULL
 			values = append(values, nil)
@@ -157,6 +160,15 @@ func (r Record) PrepareForDB() (keys []string, values []any, placeholders []stri
 				values = append(values, nil)
 			} else {
 				values = append(values, rv.Elem().Interface())
+			}
+		case *time.Time:
+			rv := reflect.ValueOf(value)
+			if rv.IsNil() {
+				values = append(values, nil)
+			} else {
+				// Convert time pointer to UTC before storing
+				timeVal := rv.Elem().Interface().(time.Time)
+				values = append(values, timeVal.UTC())
 			}
 		default:
 			jsonBytes, marshalErr := json.Marshal(value)
