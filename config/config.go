@@ -67,8 +67,7 @@ func New() (*Config, error) {
 	SetDefault("GOS_CORS_ALLOW_CREDENTIALS", false)
 	SetDefault("GOS_CORS_MAX_AGE", 300)
 
-	SetDefault("GOS_JWT_SIGNING_SECRET", 300)
-	SetDefault("GOS_JWT_ISSUER", 300)
+
 	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 60*60) // 1 hour
 	SetDefault("GOS_RESET_PASSWORD_REQUEST_EXPIRY_MINUTES", 60)
 
@@ -83,6 +82,14 @@ func New() (*Config, error) {
 	}
 
 	cfg.Oauth2AuthProviders = make(map[string]OAuth2ProviderConfig)
+
+	// Validate required JWT configuration
+	if cfg.JWTSigningSecret == "" {
+		return nil, fmt.Errorf("JWT signing secret is required (GOS_JWT_SIGNING_SECRET)")
+	}
+	if cfg.JWTIssuer == "" {
+		return nil, fmt.Errorf("JWT issuer is required (GOS_JWT_ISSUER)")
+	}
 
 	if cfg.IsProduction() {
 		if cfg.EncryptionKey == defaultEncryptionKey {
