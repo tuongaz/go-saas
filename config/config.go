@@ -67,7 +67,7 @@ func New() (*Config, error) {
 	SetDefault("GOS_CORS_ALLOW_CREDENTIALS", false)
 	SetDefault("GOS_CORS_MAX_AGE", 300)
 	SetDefault("GOS_JWT_SIGNING_SECRET", "")
-	SetDefault("GOS_JWT_ISSUER", "")
+	SetDefault("GOS_JWT_ISSUER", "wisebit.com")
 	SetDefault("GOS_JWT_TOKEN_LIFETIME_SECONDS", 60*60) // 1 hour
 	SetDefault("GOS_RESET_PASSWORD_REQUEST_EXPIRY_MINUTES", 60)
 
