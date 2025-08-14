@@ -361,6 +361,26 @@ func (c *collection) Find(ctx context.Context, opts ...FindOption) (*List, error
 				opt.Direction = SortAsc // Default to ascending if invalid
 			}
 
+			// Support optional operator-based ordering (e.g., Postgres distance operators)
+			if strings.TrimSpace(opt.Operator) != "" {
+				// Allow-list of safe operators. Extend as needed.
+				allowedOps := map[string]struct{}{
+					"<->": {}, // pg_trgm / pgvector distance
+					"<#>": {}, // pgvector inner product distance
+				}
+				if _, ok := allowedOps[opt.Operator]; !ok {
+					return nil, fmt.Errorf("unsupported sort operator: %s", opt.Operator)
+				}
+
+				// Validate right-hand identifier
+				if !ValidIdentifierName(opt.Right) {
+					return nil, fmt.Errorf("invalid right identifier for sorting: %s", opt.Right)
+				}
+
+				sortClauses = append(sortClauses, fmt.Sprintf("%s %s %s %s", opt.Field, opt.Operator, opt.Right, opt.Direction))
+				continue
+			}
+
 			sortClauses = append(sortClauses, fmt.Sprintf("%s %s", opt.Field, opt.Direction))
 		}
 

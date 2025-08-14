@@ -107,4 +107,13 @@ const (
 type SortOption struct {
 	Field     string
 	Direction SortDirection
+	// Operator is an optional SQL operator used between Field and Right when
+	// building ORDER BY clauses. For example, Postgres distance operators like
+	// "<->" or "<#>" (pgvector) can be specified here. When Operator is set,
+	// both Field and Right must be valid identifiers.
+	Operator string
+	// Right is the optional right-hand side identifier used together with
+	// Operator, e.g. ORDER BY embedding <-> query_vector DESC
+	// If Operator is empty, Right is ignored.
+	Right string
 }
